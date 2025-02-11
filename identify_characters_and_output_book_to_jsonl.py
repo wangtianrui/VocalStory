@@ -1,0 +1,386 @@
+"""
+Audiobook Creator
+Copyright (C) 2025 Prakhar Sharma
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+import re
+import time
+import json
+import random
+import traceback
+from openai import OpenAI
+from tqdm import tqdm
+import torch
+from gliner import GLiNER
+
+openai = OpenAI(base_url="http://192.168.29.62:1234/v1", api_key="lm-studio")
+model_name = "qwen2.5-14b-instruct-mlx"
+gliner_model = GLiNER.from_pretrained("urchade/gliner_large-v2.1")
+
+
+
+if torch.cuda.is_available():
+    print("Using CUDA backend")
+    gliner_model = gliner_model.cuda() # For Nvidia CUDA Accelerated GPUs
+elif torch.backends.mps.is_available():
+    print("Using MPS backend")
+    gliner_model = gliner_model.to("mps") # For Apple Silicon GPUs
+else:
+    # Use CPU only
+    print("Using CPU backend")
+    pass
+
+def empty_file(file_name):
+    # Open the file in write mode to make it empty
+    with open(file_name, 'w') as file:
+        pass  # No content is written, so the file becomes empty
+
+def write_json_to_file(data, file_name):
+    """
+    Writes a JSON object to a file.
+
+    Args:
+        data (dict): The JSON object to write.
+        file_name (str): The name of the file to which to write the JSON object.
+
+    The file is opened in write mode, so the contents of the file will be overwritten.
+    If the file does not exist, it will be created.
+    """
+    with open(file_name, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
+
+def write_jsons_to_jsonl_file(json_objects, file_name):
+    """
+    Writes a list of JSON objects to a JSONL file.
+
+    Args:
+        json_objects (list[dict]): A list of dictionaries representing the JSON objects to write.
+        file_name (str): The name of the file to which to write the JSON objects.
+
+    The file is opened in append mode, so the JSON objects will be appended to the
+    existing file contents. If the file does not exist, it will be created.
+    """
+    with open(file_name, 'a') as jsonl_file:
+        for obj in json_objects:
+            jsonl_file.write(json.dumps(obj) + '\n')
+
+def extract_dialogues(text):
+    """Extract dialogue lines enclosed in quotes."""
+    return re.findall(r'("[^"]+")', text)
+
+def identify_speaker_using_named_entity_recognition(
+    line_map: list[dict], 
+    index: int, 
+    line: str, 
+    prev_speaker: str, 
+    protagonist: str, 
+    character_gender_map: dict
+) -> str:
+    """
+    Identifies the speaker of a given line in a text using Named Entity Recognition (NER).
+
+    This function analyzes the provided line and its context to determine the speaker. It uses
+    a pre-trained NER model to detect entities and matches them with known characters or pronouns.
+    If no entity is found, it falls back to the previous speaker or assigns a default value.
+
+    Args:
+        line_map (list[dict]): A list of dictionaries representing lines of text, where each dictionary
+                              contains information about a line (e.g., the text itself).
+        index (int): The index of the current line in the `line_map`.
+        line (str): The current line of text to analyze.
+        prev_speaker (str): The speaker identified in the previous line.
+        protagonist (str): The name of the protagonist, used to resolve first-person references.
+        character_gender_map (dict): A dictionary mapping character names to their genders, used to
+                                     resolve third-person references.
+
+    Returns:
+        str: The identified speaker, normalized to lowercase.
+    """
+
+    current_line = line
+    text = f"{current_line}"
+    speaker: str = "narrator"  # Default speaker is the narrator
+
+    # Labels for the NER model to detect
+    labels = ["character", "person"]
+
+    # Lists of pronouns for different person and gender references
+    first_person_person_single_references = ["i", "me", "my", "mine", "myself"]  # First person singular
+    first_person_person_collective_references = ["we", "us", "our", "ours", "ourselves"]  # First person collective
+    second_person_person_references = ["you", "your", "yours", "yourself", "yourselves"]  # Second person
+    third_person_male_references = ["he", "him", "his", "himself"]  # Third person male
+    third_person_female_references = ["she", "her", "hers", "herself"]  # Third person female
+    third_person_others_references = [
+        "they", "them", "their", "theirs", "themself", "themselves", "it", "its", "itself"
+    ]  # Third person neutral/unknown
+
+    # Extract character names based on gender from the character_gender_map
+    gender_scores = list(character_gender_map["scores"].values())
+    male_characters = [x["name"] for x in gender_scores if x["gender"] == "male"]
+    female_characters = [x["name"] for x in gender_scores if x["gender"] == "female"]
+    other_characters = [x["name"] for x in gender_scores if x["gender"] == "unknown"]
+
+    # Use the NER model to detect entities in the current line
+    entities = gliner_model.predict_entities(text, labels)
+    entity = entities[0] if len(entities) > 0 else None
+
+    # If no entity is found, check previous lines (up to 5 lines back) for context
+    loop_index = index - 1
+    while (entity is None) and loop_index >= max(0, index - 5):
+        prev_lines = "\n".join(x["line"] for x in line_map[loop_index: index])
+        text = f"{prev_lines}\n{current_line}"
+        entities = gliner_model.predict_entities(text, labels)
+        entity = entities[0] if len(entities) > 0 else None
+        loop_index -= 1
+
+    # Determine the speaker based on the detected entity or fallback logic
+    if entity is None:
+        # If no entity is found, use the previous speaker or mark as unknown
+        if prev_speaker == "narrator":
+            speaker = "unknown"
+        else:
+            speaker = prev_speaker
+    elif entity["text"].lower() in first_person_person_single_references:
+        # First-person singular pronouns refer to the protagonist
+        speaker = protagonist
+    elif entity["text"].lower() in first_person_person_collective_references:
+        # First-person collective pronouns refer to the previous speaker
+        speaker = prev_speaker
+    elif entity["text"].lower() in second_person_person_references:
+        # Second-person pronouns refer to the previous speaker
+        speaker = prev_speaker
+    elif entity["text"].lower() in third_person_male_references:
+        # Third-person male pronouns refer to the last mentioned male character
+        last_male_character = male_characters[-1] if len(male_characters) > 0 else "unknown"
+        speaker = last_male_character
+    elif entity["text"].lower() in third_person_female_references:
+        # Third-person female pronouns refer to the last mentioned female character
+        last_female_character = female_characters[-1] if len(female_characters) > 0 else "unknown"
+        speaker = last_female_character
+    elif entity["text"].lower() in third_person_others_references:
+        # Third-person neutral/unknown pronouns refer to the last mentioned neutral/unknown character
+        last_other_character = other_characters[-1] if len(other_characters) > 0 else "unknown"
+        speaker = last_other_character
+    else:
+        # If the entity is not a pronoun, use the entity text as the speaker
+        speaker = entity["text"]
+
+    return speaker.lower()
+
+def identify_character_gender_and_age_using_llm_and_assign_score(character_name, index, lines):
+    """
+    Identifies a character's gender and age using a Language Model (LLM) and assigns a gender score.
+
+    Args:
+        character_name (str): The name or description of the character.
+        index (int): The index of the character's dialogue in the `lines` list.
+        lines (list): A list of strings representing the text lines (dialogues or descriptions).
+
+    Returns:
+        dict: A dictionary containing the character's name, inferred age, inferred gender, and gender score.
+              Example: {"name": "John", "age": "adult", "gender": "male", "gender_score": 2}
+    """
+
+    # Extract a window of dialogues around the character's line for context
+    character_dialogues = lines[max(0, index - 2):index + 5]
+    text_character_dialogues = "\n".join(character_dialogues)
+
+    # System prompt to guide the LLM in inferring age and gender
+    system_prompt = """
+    You are an expert in analyzing character names and inferring their gender and age based on the character's name and the text excerpt. Take into consideration the character name and the text excerpt and then assign the age and gender accordingly. 
+    For a masculine character return the gender as 'male', for a feminine character return the gender as 'female' and for a character whose gender is neutral/ unknown return gender as 'unknown'. 
+    For assigning the age, if the character is a child return the age as 'child', if the character is an adult return the age as 'adult' and if the character is an elderly return the age as 'elderly'.
+    Return only the gender and age as the output. Dont give any explanation or doubt. 
+    Give the output as a string in the following format:
+    Age: {age}
+    Gender: {gender}"""
+
+    # User prompt containing the character name and dialogue context
+    user_prompt = f"""
+    Character Name/ Character Description: {character_name}
+
+    Text Excerpt: {text_character_dialogues}
+    """
+
+    # Query the LLM to infer age and gender
+    response = openai.chat.completions.create(
+        model=model_name,
+        messages=[{"role": "system", "content": system_prompt},
+                  {"role": "user", "content": user_prompt}]
+    )
+
+    # Extract and clean the LLM's response
+    age_and_gender = response.choices[0].message.content
+    age_and_gender = age_and_gender.lower().strip()
+    split_text = age_and_gender.split("\n")
+    age_text = split_text[0]
+    gender_text = split_text[1]
+
+    # Parse age and gender from the response
+    age = age_text.split(":")[1].strip()
+    gender = gender_text.split(":")[1].strip()
+
+    # Default to "adult" if age is unknown or neutral
+    if age == "" or age == "unknown" or age == "neutral":
+        age = "adult"
+
+    # Default to "unknown" if gender is unknown or neutral
+    if gender == "" or gender == "unknown" or gender == "neutral":
+        gender = "unknown"
+
+    # Assign a gender score based on inferred gender and age
+    gender_score = 5  # Default to neutral/unknown
+
+    if gender == "male":
+        if age == "child":
+            gender_score = 4  # Slightly masculine for male children
+        elif age == "adult":
+            gender_score = random.choice([1, 2, 3])  # Mostly to completely masculine for male adults
+        elif age == "elderly":
+            gender_score = random.choice([1, 2])  # Mostly to completely masculine for elderly males
+    elif gender == "female":
+        if age == "child":
+            gender_score = 10  # Completely feminine for female children
+        elif age == "adult":
+            gender_score = random.choice([7, 8, 9])  # Mostly to completely feminine for female adults
+        elif age == "elderly":
+            gender_score = random.choice([6, 7])  # Slightly to moderately feminine for elderly females
+
+    # Compile character information into a dictionary
+    character_info = {
+        "name": character_name,
+        "age": age,
+        "gender": gender,
+        "gender_score": gender_score
+    }
+
+    return character_info
+
+def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
+    """
+    Processes a given text to identify characters, assign gender scores, and output the results to JSONL files.
+
+    This function performs the following steps:
+    1. Clears an existing JSONL file for storing speaker-attributed lines.
+    2. Identifies characters in the text using Named Entity Recognition (NER).
+    3. Assigns gender and age scores to characters using a Language Model (LLM).
+    4. Outputs the processed text with speaker attributions to a JSONL file.
+    5. Saves the character gender and age scores to a separate JSON file.
+
+    Args:
+        text (str): The input text to be processed, typically a book or script.
+        protagonist: The main character of the text, used as a reference for speaker identification.
+
+    Outputs:
+        - speaker_attributed_book.jsonl: A JSONL file where each line contains a speaker and their corresponding dialogue or narration.
+        - character_gender_map.json: A JSON file containing gender and age scores for each character.
+    """
+    # Clear the output JSONL file
+    empty_file("speaker_attributed_book.jsonl")
+
+    # Initialize a set to track known characters
+    known_characters = set()
+
+    # Define a mapping for character gender scores and initialize with the narrator
+    character_gender_map = {
+        "legend": {
+            "1": "completely masculine",
+            "2": "mostly masculine",
+            "3": "moderately masculine",
+            "4": "slightly masculine",
+            "5": "neutral/unknown",
+            "6": "slightly feminine",
+            "7": "moderately feminine",
+            "8": "mostly feminine",
+            "9": "almost completely feminine",
+            "10": "completely feminine"
+        },
+        "scores": {
+            "narrator": {
+                "name": "narrator",
+                "age": "adult",
+                "gender": "female",
+                "gender_score": 0  # Default score for the narrator
+            }
+        }
+    }
+
+    # Split the text into lines and extract dialogues
+    lines = text.split("\n")
+    dialogues = extract_dialogues(text)
+    prev_speaker = "narrator"  # Track the previous speaker
+    line_map: list[dict] = []  # Store speaker-attributed lines
+    dialogue_last_index = 0  # Track the last processed dialogue index
+
+    # Process each line in the text with a progress bar
+    with tqdm(total=len(lines), unit="line", desc="Identifying Characters Using Named Entity Recognition and assigning gender scores using LLM : ") as overall_pbar:
+        for index, line in enumerate(lines):
+            try:
+                # Skip empty lines
+                if not line:
+                    continue
+
+                # Check if the line contains a dialogue
+                dialogue = None
+                for dialogue_index in range(dialogue_last_index, len(dialogues)):
+                    dialogue_inner = dialogues[dialogue_index]
+                    if dialogue_inner in line:
+                        dialogue_last_index = dialogue_index
+                        dialogue = dialogue_inner
+                        break
+
+                # If the line contains a dialogue, identify the speaker
+                if dialogue:
+                    speaker = identify_speaker_using_named_entity_recognition(line_map, index, line, prev_speaker, protagonist, character_gender_map)
+
+                    # Add the speaker and line to the line map
+                    line_map.append({"speaker": speaker, "line": line})
+
+                    # If the speaker is new, assign gender and age scores using LLM
+                    if speaker not in known_characters:
+                        known_characters.add(speaker)
+                        character_gender_map["scores"][speaker] = identify_character_gender_and_age_using_llm_and_assign_score(speaker, index, lines)
+
+                    prev_speaker = speaker
+                else:
+                    # If no dialogue, attribute the line to the narrator
+                    line_map.append({"speaker": "narrator", "line": line})
+
+                # Update the progress bar
+                overall_pbar.update(1)
+
+            except Exception as e:
+                # Handle errors and log them
+                print(f"!!! Error !!! Index: {index}, Error: ", e)
+                traceback.print_exc()
+
+    # Write the processed lines to a JSONL file
+    write_jsons_to_jsonl_file(line_map, "speaker_attributed_book.jsonl")
+
+    # Write the character gender and age scores to a JSON file
+    write_json_to_file(character_gender_map, "character_gender_map.json")
+
+f = open("converted_book.txt", "r")
+book_text = f.read()
+
+protagonist = input("Enter the name of the protagonist (Check from Wikipedia): ")
+
+start_time = time.time()
+identify_characters_and_output_book_to_jsonl(book_text, protagonist)
+end_time = time.time()
+
+execution_time = end_time - start_time
+print(f"Execution time: {execution_time:.6f} seconds")

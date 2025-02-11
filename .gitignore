@@ -1,0 +1,5 @@
+books/
+generated_audiobooks/
+audio_samples/
+.venv/
+.DS_Store

@@ -1,0 +1,52 @@
+{
+    "legend": {
+        "1": "completely masculine",
+        "2": "mostly masculine",
+        "3": "moderately masculine",
+        "4": "slightly masculine",
+        "5": "neutral/unknown",
+        "6": "slightly feminine",
+        "7": "moderately feminine",
+        "8": "mostly feminine",
+        "9": "almost completely feminine",
+        "10": "completely feminine"
+    },
+    "scores": {
+        "narrator": {
+            "name": "narrator",
+            "age": "adult",
+            "gender": "female",
+            "gender_score": 0
+        },
+        "mia": {
+            "name": "mia",
+            "age": "child",
+            "gender": "female",
+            "gender_score": 10
+        },
+        "sam": {
+            "name": "sam",
+            "age": "child",
+            "gender": "male",
+            "gender_score": 4
+        },
+        "ellie": {
+            "name": "ellie",
+            "age": "child",
+            "gender": "female",
+            "gender_score": 9
+        },
+        "jack": {
+            "name": "jack",
+            "age": "child",
+            "gender": "male",
+            "gender_score": 3
+        },
+        "luna": {
+            "name": "luna",
+            "age": "child",
+            "gender": "female",
+            "gender_score": 8
+        }
+    }
+}
