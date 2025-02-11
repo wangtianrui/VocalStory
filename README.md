@@ -7,7 +7,7 @@ Audiobook Creator is an open-source project designed to convert books in various
 The project consists of three main components:
 
 1. **Text Cleaning and Formatting (`book_to_txt.py`)**:
-   - Extracts and cleans text from a book file (e.g., `sample_book.txt`).
+   - Extracts and cleans text from a book file (e.g., `book.epub`).
    - Normalizes special characters, fixes line breaks, and corrects formatting issues such as unterminated quotes or incomplete lines.
    - Extracts the main content between specified markers (e.g., "PROLOGUE" and "ABOUT THE AUTHOR").
    - Outputs the cleaned text to `converted_book.txt`.
@@ -89,7 +89,7 @@ The project consists of three main components:
 ## Usage
 
 1. Activate the virtual environment.
-2. Run `python book_to_txt.py` to clean and format the book text. You can manually edit the converted book for fine-grained control.
+2. Run `python book_to_txt.py` to clean and format the book text. You can manually edit the converted book for fine-grained control. This step requires that you enter your book path in the book_to_txt.py file, for ex. replace `sample_book.txt` with your book path.
 3. *(Optional for multi-voice narration)* Run `python identify_characters_and_output_book_to_jsonl.py` to analyze characters and generate metadata. You'll be prompted for a protagonist's name to properly attribute first-person references.
 4. Run `python generate_audiobook.py` to generate the audiobook. Choose between single-voice or multi-voice narration.
 
