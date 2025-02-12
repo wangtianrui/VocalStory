@@ -22,9 +22,17 @@ import json
 import os
 import re
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
+
+KOKORO_BASE_URL = os.environ.get("KOKORO_BASE_URL")
+KOKORO_API_KEY = os.environ.get("KOKORO_API_KEY")
+
+os.makedirs("audio_samples", exist_ok=True)
 
 client = OpenAI(
-    base_url="http://localhost:8880/v1", api_key="not-needed"
+    base_url=KOKORO_BASE_URL, api_key=KOKORO_API_KEY
 )
 
 def read_json(filename):
@@ -123,9 +131,6 @@ def generate_audio_with_single_voice():
                     
                     # Update the progress bar after processing each line
                 overall_pbar.update(1)
-
-import json
-from tqdm import tqdm
 
 def generate_audio_with_multiple_voices():
     """

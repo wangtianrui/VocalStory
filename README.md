@@ -85,20 +85,23 @@ The project consists of three main components:
    ```
 6. Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen2.5-14b-instruct-mlx`).
 7. Set up the Kokoro TTS model. Use CUDA-based GPU inference for faster processing or CPU inference via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI).
-8. Ensure the LLM and TTS endpoints are correctly configured in the project files.
+8. Create a .env file from .env_sample and configure it with correct values
+   ```bash
+   cp .env_sample .env
+   ```
 
 ## Usage
 
 1. Activate the virtual environment.
-2. Run `python book_to_txt.py {book_path}` to clean and format the book text. You can give the path to the book in the arguments to the python command or as an input. Also, after conversion you can manually edit the converted book for fine-grained control.
-3. *(Optional for multi-voice narration)* Run `python identify_characters_and_output_book_to_jsonl.py` to analyze characters and generate metadata. You'll be prompted for a protagonist's name to properly attribute first-person references.
-4. Run `python generate_audiobook.py` to generate the audiobook. Choose between single-voice or multi-voice narration.
+2. Make sure your .env is correctly configured using .env_sample
+3. Run `python book_to_txt.py {book_path}` to clean and format the book text. You can give the path to the book in the arguments to the python command or as an input. Also, after conversion you can manually edit the converted book for fine-grained control.
+4. *(Optional for multi-voice narration)* Run `python identify_characters_and_output_book_to_jsonl.py` to analyze characters and generate metadata. You'll be prompted for a protagonist's name to properly attribute first-person references.
+5. Run `python generate_audiobook.py` to generate the audiobook. Choose between single-voice or multi-voice narration.
 
 ## Roadmap
 
 Planned future enhancements:
 
--  ⏳ Use environment variables instead of modifying files directly.
 -  ⏳ Code Refactoring/ Code Splitting.
 -  ⏳ Try different voice combinations using `generate_audio_samples.py` and update the `kokoro_voice_map.json` to use better voices. 
 -  ⏳ Give option to the user for selecting the audio generation format.
@@ -106,6 +109,7 @@ Planned future enhancements:
 -  ⏳ Add extended pause when chapters end once chapter recognition is in place.
 -  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
+-  ✅ Use environment variables instead of modifying files directly.
 -  ✅ Update the `generate_audio_with_single_voice()` function's hardcoded progress bar logic and modify it to generate for each line instead of the whole text.
 -  ✅ Notify the user about the generated output files and the next steps. 
 -  ✅ In `book_to_txt.py`, prompt for book path, prompt for main content extraction/ manual intervention notification after task is done.

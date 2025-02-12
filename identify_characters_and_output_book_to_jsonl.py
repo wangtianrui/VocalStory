@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
+import os
 import time
 import json
 import random
@@ -26,11 +27,18 @@ from tqdm import tqdm
 import torch
 from gliner import GLiNER
 import warnings
+from dotenv import load_dotenv
+
+load_dotenv()
+
+OPENAI_BASE_URL=os.environ.get("OPENAI_BASE_URL")
+OPENAI_API_KEY=os.environ.get("OPENAI_API_KEY")
+OPENAI_MODEL_NAME=os.environ.get("OPENAI_MODEL_NAME")
 
 warnings.simplefilter("ignore")
 
-openai = OpenAI(base_url="http://192.168.29.62:1234/v1", api_key="lm-studio")
-model_name = "qwen2.5-14b-instruct-mlx"
+openai = OpenAI(base_url=OPENAI_BASE_URL, api_key=OPENAI_API_KEY)
+model_name = OPENAI_MODEL_NAME
 gliner_model = GLiNER.from_pretrained("urchade/gliner_large-v2.1")
 
 print("\n🚀 **Model Backend Selection**")
