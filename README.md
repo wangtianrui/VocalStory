@@ -4,6 +4,8 @@
 
 Audiobook Creator is an open-source project designed to convert books in various text formats (e.g., EPUB, PDF) into fully voiced audiobooks with intelligent character voice attribution. It leverages modern Natural Language Processing (NLP), Large Language Models (LLMs), and Text-to-Speech (TTS) technologies to create an engaging and dynamic audiobook experience. The project is licensed under the GNU General Public License v3.0 (GPL-3.0), ensuring that it remains free and open for everyone to use, modify, and distribute.
 
+Sample multi voice audio for a short story : https://audio.com/prakhar-sharma/audio/generated-sample-multi-voice-audiobook
+
 The project consists of three main components:
 
 1. **Text Cleaning and Formatting (`book_to_txt.py`)**:
