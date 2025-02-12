@@ -20,6 +20,7 @@ from openai import OpenAI
 from tqdm import tqdm
 import json
 import os
+import re
 import time
 
 client = OpenAI(
@@ -33,6 +34,20 @@ def read_json(filename):
         data = json.load(file)
 
         return data
+    
+def split_and_annotate_text(text):
+    """Splits text into dialogue and narration while annotating each segment."""
+    parts = re.split(r'("[^"]+")', text)  # Keep dialogues in the split result
+    annotated_parts = []
+
+    for part in parts:
+        if part:  # Ignore empty strings
+            annotated_parts.append({
+                "text": part,
+                "type": "dialogue" if part.startswith('"') and part.endswith('"') else "narration"
+            })
+
+    return annotated_parts
     
 def find_voice_for_gender_score(character: str, character_gender_map, kokoro_voice_map):
     """
@@ -139,6 +154,7 @@ def generate_audio_with_multiple_voices():
     # Load mappings for character gender and voice selection
     character_gender_map = read_json("character_gender_map.json")
     kokoro_voice_map = read_json("kokoro_voice_map.json")
+    narrator_voice = find_voice_for_gender_score("narrator", character_gender_map, kokoro_voice_map) # Loading the default narrator voice
     
     # Get the total number of lines to process for the progress bar
     total_size = len(json_data_array)
@@ -153,26 +169,36 @@ def generate_audio_with_multiple_voices():
                 speaker = doc["speaker"]
                 
                 # Find the appropriate voice for the speaker based on gender and voice mapping
-                voice = find_voice_for_gender_score(speaker, character_gender_map, kokoro_voice_map)
+                speaker_voice = find_voice_for_gender_score(speaker, character_gender_map, kokoro_voice_map)
                 line = line.strip()
 
                 # Skip empty lines
                 if not line:
                     continue
 
-                # Generate audio for the line using the TTS service
-                with client.audio.speech.with_streaming_response.create(
-                    model="kokoro",
-                    voice=voice,
-                    response_format="aac",
-                    speed=0.85,
-                    input=line
-                ) as response:
-                    # Stream the audio chunks and write them to the AAC file
-                    for chunk in response.iter_bytes():
-                        audio_file.write(chunk)
-                
-                # Update the progress bar after processing each line
+                annotated_parts = split_and_annotate_text(line) # split the line into annotated parts containing dialogue and narration
+
+                for part in annotated_parts: # generate audio for each part : either dialogue or narration
+                    text_to_speak = part["text"]
+                    voice_to_speak_in = narrator_voice
+                    if part["type"] == "narration":
+                        voice_to_speak_in = narrator_voice
+                    elif part["type"] == "dialogue":
+                        voice_to_speak_in = speaker_voice
+
+                    # Generate audio for the line using the TTS service
+                    with client.audio.speech.with_streaming_response.create(
+                        model="kokoro",
+                        voice=voice_to_speak_in,
+                        response_format="aac",
+                        speed=0.85,
+                        input=text_to_speak
+                    ) as response:
+                        # Stream the audio chunks and write them to the AAC file
+                        for chunk in response.iter_bytes():
+                            audio_file.write(chunk)
+                    
+                    # Update the progress bar after processing each line
                 overall_pbar.update(1)
 
     # Print a completion message
