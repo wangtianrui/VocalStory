@@ -70,7 +70,7 @@ def find_voice_for_gender_score(character: str, character_gender_map, kokoro_voi
 
 def generate_audio_with_single_voice():
     """
-    Generates an audiobook using a single voice.
+    Generates an audiobook using a single voice for narration and another voice for dialogues.
 
     This function reads text from a file called "converted_book.txt" and generates an
     audiobook using the "af_heart" voice as the narrator and "am_fenrir" voice as the dialogue speaker. The speed of the voice is set to 0.85.

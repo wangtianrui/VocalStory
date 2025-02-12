@@ -22,7 +22,7 @@ The project consists of three main components:
 3. **Audiobook Generation (`generate_audiobook.py`)**:
    - Converts the cleaned text (`converted_book.txt`) or speaker-attributed text (`speaker_attributed_book.jsonl`) into an audiobook using the Kokoro TTS model ([Hexgrad/Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)).
    - Offers two narration modes:
-     - **Single-Voice**: Uses a single voice for the entire book.
+     - **Single-Voice**: Uses a single voice for narration and another voice for dialogues for the entire book.
      - **Multi-Voice**: Assigns different voices to characters based on their gender scores.
    - Saves the audiobook in AAC format to `generated_audiobooks/audiobook.aac`.
 
