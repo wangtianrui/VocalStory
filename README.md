@@ -90,7 +90,7 @@ The project consists of three main components:
 ## Usage
 
 1. Activate the virtual environment.
-2. Run `python book_to_txt.py` to clean and format the book text. You can manually edit the converted book for fine-grained control. This step requires that you enter your book path in the book_to_txt.py file, for ex. replace `sample_book.txt` with your book path.
+2. Run `python book_to_txt.py {book_path}` to clean and format the book text. You can give the path to the book in the arguments to the python command or as an input. Also, after conversion you can manually edit the converted book for fine-grained control.
 3. *(Optional for multi-voice narration)* Run `python identify_characters_and_output_book_to_jsonl.py` to analyze characters and generate metadata. You'll be prompted for a protagonist's name to properly attribute first-person references.
 4. Run `python generate_audiobook.py` to generate the audiobook. Choose between single-voice or multi-voice narration.
 
@@ -99,19 +99,19 @@ The project consists of three main components:
 Planned future enhancements:
 
 -  ⏳ Use environment variables instead of modifying files directly.
--  ⏳ Declare main functions for each file and use the env variables.
 -  ⏳ Code Refactoring/ Code Splitting.
--  ⏳ Notify the user about the generated output files and the next steps. 
--  ⏳ In `book_to_txt.py`, prompt for book path, prompt for main content extraction/ manual intervention notification after task is done.
--  ✅ Improve single-voice narration with a different dialogue voice from the narrator's voice.
--  ✅ Read out only the dialogue in a different voice instead of the entire line in that voice.
 -  ⏳ Try different voice combinations using `generate_audio_samples.py` and update the `kokoro_voice_map.json` to use better voices. 
--  ✅ Update the `generate_audio_with_single_voice()` function's hardcoded progress bar logic and modify it to generate for each line instead of the whole text.
 -  ⏳ Give option to the user for selecting the audio generation format.
 -  ⏳ Add artwork and chapters, and convert audiobooks to M4B format for better compatibility.
 -  ⏳ Add extended pause when chapters end once chapter recognition is in place.
 -  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
+-  ✅ Update the `generate_audio_with_single_voice()` function's hardcoded progress bar logic and modify it to generate for each line instead of the whole text.
+-  ✅ Notify the user about the generated output files and the next steps. 
+-  ✅ In `book_to_txt.py`, prompt for book path, prompt for main content extraction/ manual intervention notification after task is done.
+-  ✅ Improve single-voice narration with a different dialogue voice from the narrator's voice.
+-  ✅ Read out only the dialogue in a different voice instead of the entire line in that voice.
+-  ✅ Declare main functions for each file.
 
 ## Support
 

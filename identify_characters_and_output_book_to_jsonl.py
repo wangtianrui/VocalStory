@@ -25,23 +25,26 @@ from openai import OpenAI
 from tqdm import tqdm
 import torch
 from gliner import GLiNER
+import warnings
+
+warnings.simplefilter("ignore")
 
 openai = OpenAI(base_url="http://192.168.29.62:1234/v1", api_key="lm-studio")
 model_name = "qwen2.5-14b-instruct-mlx"
 gliner_model = GLiNER.from_pretrained("urchade/gliner_large-v2.1")
 
-
+print("\n🚀 **Model Backend Selection**")
 
 if torch.cuda.is_available():
-    print("Using CUDA backend")
-    gliner_model = gliner_model.cuda() # For Nvidia CUDA Accelerated GPUs
+    print("🟢 Using **CUDA** backend (NVIDIA GPU detected)")
+    gliner_model = gliner_model.cuda()  # For Nvidia CUDA Accelerated GPUs
 elif torch.backends.mps.is_available():
-    print("Using MPS backend")
-    gliner_model = gliner_model.to("mps") # For Apple Silicon GPUs
+    print("🍏 Using **MPS** backend (Apple Silicon GPU detected)")
+    gliner_model = gliner_model.to("mps")  # For Apple Silicon GPUs
 else:
-    # Use CPU only
-    print("Using CPU backend")
-    pass
+    print("⚪ Using **CPU** backend (No compatible GPU found)")
+
+print("✅ Model is ready!\n")
 
 def empty_file(file_name):
     # Open the file in write mode to make it empty
@@ -373,14 +376,29 @@ def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
     # Write the character gender and age scores to a JSON file
     write_json_to_file(character_gender_map, "character_gender_map.json")
 
-f = open("converted_book.txt", "r")
-book_text = f.read()
+def main():
+    f = open("converted_book.txt", "r")
+    book_text = f.read()
 
-protagonist = input("Enter the name of the protagonist (Check from Wikipedia): ")
+    # Ask for the protagonist's name
+    print("\n📖 **Character Identification Setup**")
+    protagonist = input("🔹 Enter the name of the **protagonist** (Check from Wikipedia if needed): ").strip()
 
-start_time = time.time()
-identify_characters_and_output_book_to_jsonl(book_text, protagonist)
-end_time = time.time()
+    # Start processing
+    start_time = time.time()
+    print("\n🔍 Identifying characters and processing the book...")
+    identify_characters_and_output_book_to_jsonl(book_text, protagonist)
+    end_time = time.time()
 
-execution_time = end_time - start_time
-print(f"Execution time: {execution_time:.6f} seconds")
+    # Calculate execution time
+    execution_time = end_time - start_time
+    print(f"\n⏱️ **Execution Time:** {execution_time:.6f} seconds")
+
+    # Completion message
+    print("\n✅ **Character identification complete!**")
+    print("🎧 Next, run the following script to generate the audiobook:")
+    print("   ➜ `python generate_audiobook.py`")
+    print("\n🚀 Happy audiobook creation!\n")
+
+if __name__ == "__main__":
+    main()

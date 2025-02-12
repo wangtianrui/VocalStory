@@ -123,8 +123,6 @@ def generate_audio_with_single_voice():
                     
                     # Update the progress bar after processing each line
                 overall_pbar.update(1)
-    
-    print("TTS generation complete!")
 
 import json
 from tqdm import tqdm
@@ -211,20 +209,30 @@ def generate_audio_with_multiple_voices():
                     # Update the progress bar after processing each line
                 overall_pbar.update(1)
 
-    # Print a completion message
-    print("TTS generation complete!")
+def main():
+    os.makedirs("generated_audiobooks", exist_ok=True)
 
-os.makedirs("generated_audiobooks", exist_ok=True)
-option = input("Enter 1 for single voice or 2 for multiple voices: ")
+    # Prompt user for voice selection
+    print("\n🎙️ **Audiobook Voice Selection**")
+    option = input("🔹 Enter **1** for **Single Voice** or **2** for **Multiple Voices**: ").strip()
 
-start_time = time.time()
+    start_time = time.time()
 
-if option == "1":
-    generate_audio_with_single_voice()
-else:
-    generate_audio_with_multiple_voices()
+    if option == "1":
+        print("\n🎧 Generating audiobook with a **single voice**...")
+        generate_audio_with_single_voice()
+    elif option == "2":
+        print("\n🎭 Generating audiobook with **multiple voices**...")
+        generate_audio_with_multiple_voices()
+    else:
+        print("\n⚠️ Invalid option! Please restart and enter either **1** or **2**.")
 
-end_time = time.time()
+    print("\n🎧 Audiobook is generated ! The audiobook is saved as **audiobook.aac** in the **generated_audiobooks** directory in the current folder.")
 
-execution_time = end_time - start_time
-print(f"Execution time: {execution_time:.6f} seconds")
+    end_time = time.time()
+
+    execution_time = end_time - start_time
+    print(f"\n⏱️ **Execution Time:** {execution_time:.6f} seconds\n✅ Audiobook generation complete!")
+
+if __name__ == "__main__":
+    main()

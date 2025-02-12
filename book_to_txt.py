@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
+import sys
 import textract
 
 def fix_unterminated_quotes(text: str):
@@ -166,19 +167,87 @@ def fix_unterminated_text(input_text):
     
     return '\n'.join(fixed_lines)
 
-text: str = textract.process('sample_book.txt', encoding='utf-8').decode() # decode using textract
+def main():
+    # Default book path
+    book_path = "./sample_book_and_audio/sample_book.txt"
 
-text = text.replace("\u201c", '"').replace("\u201d", '"').replace("\u2019", "'").replace("\u2018", "'") # Normalize text by replacing curly quotes and apostrophes with standard ASCII equivalents
+    # Check if a path is provided via command-line arguments
+    if len(sys.argv) > 1:
+        book_path = sys.argv[1]
+        print(f"📂 Using book file from command-line argument: **{book_path}**")
+    else:
+        # Ask user for book file path if not provided
+        input_path = input("\n📖 Enter the **path to the book file** (Press Enter to use default): ").strip()
+        if input_path:
+            book_path = input_path
+        print(f"📂 Using book file: **{book_path}**")
 
-text = normalize_line_breaks(text) # Remove multiple line breaks, normalize it 
+    print("✅ Book path set. Proceeding...\n")
 
-# optional, do it for books which are not formatted properly and have unterminated lines
-# text = fix_unterminated_text(text)
+    print("✍️ Decoding the book...\n")
 
-text = fix_unterminated_quotes(text) # Fix missing quotes in a dialogue, works both ways for opening and closing quotes
+    text: str = textract.process(book_path, encoding='utf-8').decode() # decode using textract
 
-# optional, you can do this step manually by editing book.txt also or you can use this function
-# text = extract_main_content(text, start_marker="PROLOGUE", end_marker="ABOUT THE AUTHOR") 
+    print("✍️ Normalizing the text by replacing curly quotes and apostrophes with standard ASCII equivalents...\n")
 
-with open("converted_book.txt", 'w', encoding='utf-8') as fout:
-    fout.write(text)
+    text = text.replace("\u201c", '"').replace("\u201d", '"').replace("\u2019", "'").replace("\u2018", "'") # Normalize text by replacing curly quotes and apostrophes with standard ASCII equivalents
+
+    print("✍️ Removing multiple line breaks...\n")
+
+    text = normalize_line_breaks(text) # Remove multiple line breaks, normalize it 
+
+    # Ask user if they want to fix unterminated text
+    print("\n🔧 Text Cleaning Options:\n")
+    have_to_fix_unterminated_text = input(
+        "❓ Do you want to fix **unterminated text**? (Optional)\n"
+        "📌 This helps with books that are not formatted properly and have unterminated lines.\n"
+        "➡️ Answer (yes/no). Default is **no**: "
+    ).strip().lower()
+
+    if have_to_fix_unterminated_text == "yes":
+        text = fix_unterminated_text(text)
+        print("✅ Unterminated text has been fixed!\n")
+
+    # Fix missing opening/closing quotes in dialogue
+    print("\n✍️ Fixing unterminated quotes in dialogue...\n")
+    text = fix_unterminated_quotes(text)
+
+    # Ask user if they want to extract main content
+    have_to_extract_main_content = input(
+        "❓ Do you want to extract the **main content** of the book? (Optional)\n"
+        "📌 You can also do this step manually for finer control over the audiobook text.\n"
+        "➡️ Answer (yes/no). Default is **no**: "
+    ).strip().lower()
+
+    if have_to_extract_main_content == "yes":
+        start_marker = input("🔹 Enter the **start marker** for the main content (case-sensitive): Default is **PROLOGUE** :").strip()
+        if(not start_marker):
+            start_marker = "PROLOGUE"
+        end_marker = input("🔹 Enter the **end marker** for the main content (case-sensitive): Default is **ABOUT THE AUTHOR** :").strip()
+        if(not end_marker):
+            end_marker = "ABOUT THE AUTHOR"
+        text = extract_main_content(text, start_marker=start_marker, end_marker=end_marker)
+        print("✅ Main content has been extracted!\n")
+
+    print("\n🚀 Processing complete!\n")
+
+    with open("converted_book.txt", 'w', encoding='utf-8') as fout:
+        fout.write(text)
+
+        print("📖 Your book has been successfully cleaned and converted!")
+        print("✅ Saved as: converted_book.txt (in the current working directory)\n")
+
+        print("🔍 Please manually review the converted book and remove any unnecessary content.\n")
+
+        print("🎭 Next Steps:")
+        print("  - If you want **multiple voices**, run:")
+        print("    ➜ `python identify_characters_and_output_book_to_jsonl.py`")
+        print("    (This script will identify characters and assign gender & age scores.)\n")
+        print("  - If you want a **single voice**, directly run:")
+        print("    ➜ `python generate_audiobook.py`")
+        print("    (This will generate the audiobook immediately.)\n")
+
+        print("🚀 Happy audiobook creation!")
+
+if __name__ == "__main__":
+    main()
