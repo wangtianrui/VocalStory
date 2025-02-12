@@ -20,6 +20,7 @@ from openai import OpenAI
 import itertools
 import requests
 import os
+from tqdm import tqdm
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -41,37 +42,42 @@ Couldn't put Humpty together again."""
 response = requests.get(f"{KOKORO_BASE_URL}/audio/voices")
 voices_res = response.json()
 voices = voices_res["voices"]
-print("Available voices:", voices)
+# print("Available voices:", voices)
 
 combinations = list(itertools.combinations(voices, 2))
-all_voices_combinations = []
+all_voices_combinations = voices.copy()
 
 for comb in combinations:
     all_voices_combinations.append("+".join(comb))
 
 gen_for_all_combinations = input("Generate voice sample for all voice combinations ? Enter yes or no : ")
+gen_for_all_combinations = gen_for_all_combinations.strip().lower()
 
 if(gen_for_all_combinations == "yes"):
-    for voice in all_voices_combinations:
-        with client.audio.speech.with_streaming_response.create(
-            model="kokoro",
-            voice=voice,
-            response_format="aac",  # Ensuring format consistency
-            speed=0.85,
-            input=text
-        ) as response:
-            file_path = f"audio_samples/{voice}.aac"
-            response.stream_to_file(file_path)
+    with tqdm(total=len(all_voices_combinations), unit="line", desc="Audio Generation Progress") as overall_pbar:
+        for voice in all_voices_combinations:
+            with client.audio.speech.with_streaming_response.create(
+                model="kokoro",
+                voice=voice,
+                response_format="aac",  # Ensuring format consistency
+                speed=0.85,
+                input=text
+            ) as response:
+                file_path = f"audio_samples/{voice.replace('+', '_')}.aac"
+                response.stream_to_file(file_path)
+            overall_pbar.update(1)
 else:
-    for voice in voices:
-        with client.audio.speech.with_streaming_response.create(
-            model="kokoro",
-            voice=voice,
-            response_format="aac",  # Ensuring format consistency
-            speed=0.85,
-            input=text
-        ) as response:
-            file_path = f"audio_samples/{voice}.aac"
-            response.stream_to_file(file_path)
+    with tqdm(total=len(voices), unit="line", desc="Audio Generation Progress") as overall_pbar:
+        for voice in voices:
+            with client.audio.speech.with_streaming_response.create(
+                model="kokoro",
+                voice=voice,
+                response_format="aac",  # Ensuring format consistency
+                speed=0.85,
+                input=text
+            ) as response:
+                file_path = f"audio_samples/{voice}.aac"
+                response.stream_to_file(file_path)
+            overall_pbar.update(1)
 
 print("TTS generation complete!")
