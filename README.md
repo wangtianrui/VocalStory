@@ -109,6 +109,7 @@ Planned future enhancements:
 -  ⏳ Give option to the user for selecting the audio generation format.
 -  ⏳ Add artwork and chapters, and convert audiobooks to M4B format for better compatibility.
 -  ⏳ Add extended pause when chapters end once chapter recognition is in place.
+-  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
 
 ## Support
 
