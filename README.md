@@ -24,7 +24,7 @@ The project consists of three main components:
    - Offers two narration modes:
      - **Single-Voice**: Uses a single voice for narration and another voice for dialogues for the entire book.
      - **Multi-Voice**: Assigns different voices to characters based on their gender scores.
-   - Saves the audiobook in AAC format to `generated_audiobooks/audiobook.aac`.
+   - Saves the audiobook in MP3/ AAC format to `generated_audiobooks/audiobook.{output_format}`.
 
 ## Key Features
 
@@ -102,13 +102,12 @@ The project consists of three main components:
 
 Planned future enhancements:
 
--  ⏳ Code Refactoring/ Code Splitting.
+-  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Try different voice combinations using `generate_audio_samples.py` and update the `kokoro_voice_map.json` to use better voices. 
--  ⏳ Give option to the user for selecting the audio generation format.
 -  ⏳ Add artwork and chapters, and convert audiobooks to M4B format for better compatibility.
 -  ⏳ Add extended pause when chapters end once chapter recognition is in place.
--  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
+-  ✅ Give option to the user for selecting the audio generation format.
 -  ✅ Use environment variables instead of modifying files directly.
 -  ✅ Update the `generate_audio_with_single_voice()` function's hardcoded progress bar logic and modify it to generate for each line instead of the whole text.
 -  ✅ Notify the user about the generated output files and the next steps. 

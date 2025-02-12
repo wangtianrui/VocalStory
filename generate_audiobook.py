@@ -76,16 +76,17 @@ def find_voice_for_gender_score(character: str, character_gender_map, kokoro_voi
         if score == character_gender_score:
             return voice
 
-def generate_audio_with_single_voice():
+def generate_audio_with_single_voice(output_format):
     """
     Generates an audiobook using a single voice for narration and another voice for dialogues.
+    Takes in output_format as an argument for the output format of the audio.
 
     This function reads text from a file called "converted_book.txt" and generates an
     audiobook using the "af_heart" voice as the narrator and "am_fenrir" voice as the dialogue speaker. The speed of the voice is set to 0.85.
 
     The progress of the generation is displayed using a tqdm progress bar.
 
-    The generated audiobook is saved to a file called "generated_audiobooks/audiobook.aac".
+    The generated audiobook is saved to a file called "generated_audiobooks/audiobook.{output_format}".
 
     The function prints a message when the generation is complete.
     """
@@ -100,8 +101,8 @@ def generate_audio_with_single_voice():
     total_size = len(lines)
 
     with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
-        # Open an AAC file for writing the generated audio
-        with open("generated_audiobooks/audiobook.aac", "wb") as audio_file:
+        # Open a file for writing the generated audio
+        with open(f"generated_audiobooks/audiobook.{output_format}", "wb") as audio_file:
             for line in lines:
                 line = line.strip()
                 if not line:
@@ -121,24 +122,25 @@ def generate_audio_with_single_voice():
                     with client.audio.speech.with_streaming_response.create(
                         model="kokoro",
                         voice=voice_to_speak_in,
-                        response_format="aac",
+                        response_format=output_format,
                         speed=0.85,
                         input=text_to_speak
                     ) as response:
-                        # Stream the audio chunks and write them to the AAC file
+                        # Stream the audio chunks and write them to the output file
                         for chunk in response.iter_bytes():
                             audio_file.write(chunk)
                     
                     # Update the progress bar after processing each line
                 overall_pbar.update(1)
 
-def generate_audio_with_multiple_voices():
+def generate_audio_with_multiple_voices(output_format):
     """
     Generates an audiobook with multiple voices by processing a JSONL file containing speaker-attributed lines.
+    Takes in output_format as an argument for the output format of the audio.
 
     This function reads a JSONL file where each line represents a JSON object containing a line of text and its
     associated speaker. It maps each speaker to a specific voice based on gender and other criteria, then uses
-    a text-to-speech (TTS) service to generate audio for each line. The resulting audio is saved as an AAC file.
+    a text-to-speech (TTS) service to generate audio for each line. The resulting audio is saved in the output_format.
 
     The function also uses a progress bar to track the audio generation process.
 
@@ -148,7 +150,7 @@ def generate_audio_with_multiple_voices():
     - A TTS client (e.g., `client.audio.speech`) configured for streaming audio generation.
 
     Output:
-    - An AAC file named 'audiobook.aac' saved in the 'generated_audiobooks' directory.
+    - An output file named 'audiobook.{output_format}' saved in the 'generated_audiobooks' directory.
     """
     
     # Path to the JSONL file containing speaker-attributed lines
@@ -174,8 +176,8 @@ def generate_audio_with_multiple_voices():
     
     # Initialize a progress bar to track the audio generation process
     with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
-        # Open an AAC file for writing the generated audio
-        with open("generated_audiobooks/audiobook.aac", "wb") as audio_file:
+        # Open a file for writing the generated audio
+        with open(f"generated_audiobooks/audiobook.{output_format}", "wb") as audio_file:
             for doc in json_data_array:
                 # Extract the line of text and the speaker from the JSON object
                 line = doc["line"]
@@ -203,11 +205,11 @@ def generate_audio_with_multiple_voices():
                     with client.audio.speech.with_streaming_response.create(
                         model="kokoro",
                         voice=voice_to_speak_in,
-                        response_format="aac",
+                        response_format=output_format,
                         speed=0.85,
                         input=text_to_speak
                     ) as response:
-                        # Stream the audio chunks and write them to the AAC file
+                        # Stream the audio chunks and write them to the output file
                         for chunk in response.iter_bytes():
                             audio_file.write(chunk)
                     
@@ -221,18 +223,26 @@ def main():
     print("\n🎙️ **Audiobook Voice Selection**")
     option = input("🔹 Enter **1** for **Single Voice** or **2** for **Multiple Voices**: ").strip()
 
+    # Prompt user for voice selection
+    print("\n🎙️ **Audiobook Output Format Selection**")
+    output_format = input("🔹 Choose between ['aac', 'mp3']. Other formats ['opus', 'flac', 'wav', 'pcm'] give incomplete audio or have error in them in Kokoro : ").strip()
+
+    if(output_format not in ['aac', 'mp3']):
+        print("\n⚠️ Invalid output format! Please choose either 'aac' or 'mp3'.")
+        return
+
     start_time = time.time()
 
     if option == "1":
         print("\n🎧 Generating audiobook with a **single voice**...")
-        generate_audio_with_single_voice()
+        generate_audio_with_single_voice(output_format)
     elif option == "2":
         print("\n🎭 Generating audiobook with **multiple voices**...")
-        generate_audio_with_multiple_voices()
+        generate_audio_with_multiple_voices(output_format)
     else:
         print("\n⚠️ Invalid option! Please restart and enter either **1** or **2**.")
 
-    print("\n🎧 Audiobook is generated ! The audiobook is saved as **audiobook.aac** in the **generated_audiobooks** directory in the current folder.")
+    print(f"\n🎧 Audiobook is generated ! The audiobook is saved as **audiobook.{output_format}** in the **generated_audiobooks** directory in the current folder.")
 
     end_time = time.time()
 
