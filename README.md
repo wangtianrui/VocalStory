@@ -42,6 +42,7 @@ The project consists of three main components:
 - `sample_book_and_audio/speaker_attributed_book.jsonl`: The generated speaker-attributed JSONL file.
 - `sample_book_and_audio/character_gender_map.json`: The generated character metadata.
 - `sample_book_and_audio/sample_multi_voice_audio.aac`: The generated sample multi-voice audiobook from the story.
+- `sample_book_and_audio/sample_single_voice_audio.aac`: The generated sample single-voice audiobook from the story.
 
 ## Requirements
 
@@ -102,10 +103,10 @@ Planned future enhancements:
 -  ⏳ Code Refactoring/ Code Splitting.
 -  ⏳ Notify the user about the generated output files and the next steps. 
 -  ⏳ In `book_to_txt.py`, prompt for book path, prompt for main content extraction/ manual intervention notification after task is done.
--  ⏳ Improve single-voice narration with a different dialogue voice from the narrator's voice.
+-  ✅ Improve single-voice narration with a different dialogue voice from the narrator's voice.
 -  ✅ Read out only the dialogue in a different voice instead of the entire line in that voice.
 -  ⏳ Try different voice combinations using `generate_audio_samples.py` and update the `kokoro_voice_map.json` to use better voices. 
--  ⏳ Update the `generate_audio_with_single_voice()` function's hardcoded progress bar logic and modify it to generate for each line instead of the whole text.
+-  ✅ Update the `generate_audio_with_single_voice()` function's hardcoded progress bar logic and modify it to generate for each line instead of the whole text.
 -  ⏳ Give option to the user for selecting the audio generation format.
 -  ⏳ Add artwork and chapters, and convert audiobooks to M4B format for better compatibility.
 -  ⏳ Add extended pause when chapters end once chapter recognition is in place.

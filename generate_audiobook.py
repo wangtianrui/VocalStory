@@ -73,12 +73,7 @@ def generate_audio_with_single_voice():
     Generates an audiobook using a single voice.
 
     This function reads text from a file called "converted_book.txt" and generates an
-    audiobook using the "af_heart" voice. The speed of the voice is set to 0.85.
-
-    The estimated duration of the audiobook is calculated based on the number of
-    words in the text and the words per minute (WPM) of the voice. The estimated
-    size of the audiobook is calculated based on the estimated duration and the
-    bytes per second of the AAC format.
+    audiobook using the "af_heart" voice as the narrator and "am_fenrir" voice as the dialogue speaker. The speed of the voice is set to 0.85.
 
     The progress of the generation is displayed using a tqdm progress bar.
 
@@ -88,32 +83,47 @@ def generate_audio_with_single_voice():
     """
     f = open("converted_book.txt", "r")
     text = f.read()
-    num_words = len(text.split())
+    lines = text.split("\n")
 
-    # ✅ Updated WPM based on calibration
-    words_per_minute = 167.36  # Adjusted WPM from real-world data
-    estimated_duration = (num_words / words_per_minute) * 60  # in seconds
+    narrator_voice = "af_heart" # voice to be used for narration
+    dialogue_voice = "am_fenrir" # voice to be used for dialogue
 
-    with client.audio.speech.with_streaming_response.create(
-        model="kokoro",
-        voice="af_heart",
-        response_format="aac",  # Ensuring format consistency
-        speed=0.85,
-        input=text
-    ) as response:
-        file_path = "generated_audiobooks/audiobook.aac"
+    # Get the total number of lines to process for the progress bar
+    total_size = len(lines)
 
-        # ✅ Updated size estimate from real-world data
-        size_per_second = 16267  # Bytes per second for AAC
-        total_size = estimated_duration * size_per_second
+    with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
+        # Open an AAC file for writing the generated audio
+        with open("generated_audiobooks/audiobook.aac", "wb") as audio_file:
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
 
-        with open(file_path, "wb") as audio_file, tqdm(
-            total=int(total_size), unit="B", unit_scale=True, desc="Generating Audio"
-        ) as pbar:
-            for chunk in response.iter_bytes():
-                audio_file.write(chunk)
-                pbar.update(len(chunk))
+                annotated_parts = split_and_annotate_text(line) # split the line into annotated parts containing dialogue and narration
 
+                for part in annotated_parts: # generate audio for each part : either dialogue or narration
+                    text_to_speak = part["text"]
+                    voice_to_speak_in = narrator_voice
+                    if part["type"] == "narration":
+                        voice_to_speak_in = narrator_voice
+                    elif part["type"] == "dialogue":
+                        voice_to_speak_in = dialogue_voice
+
+                    # Generate audio for the line using the TTS service
+                    with client.audio.speech.with_streaming_response.create(
+                        model="kokoro",
+                        voice=voice_to_speak_in,
+                        response_format="aac",
+                        speed=0.85,
+                        input=text_to_speak
+                    ) as response:
+                        # Stream the audio chunks and write them to the AAC file
+                        for chunk in response.iter_bytes():
+                            audio_file.write(chunk)
+                    
+                    # Update the progress bar after processing each line
+                overall_pbar.update(1)
+    
     print("TTS generation complete!")
 
 import json
