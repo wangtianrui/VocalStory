@@ -19,6 +19,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import sys
 import textract
+from utils.run_shell_commands import run_shell_command_without_virtualenv, check_if_calibre_is_installed
+
+def extract_text_from_book_using_textract(book_path):
+    text: str = textract.process(book_path, encoding='utf-8').decode() # decode using textract
+
+    return text
+
+def extract_text_from_book_using_calibre(book_path):
+
+    command = f"/usr/bin/ebook-convert '{book_path}' extracted_book.txt"
+    result = run_shell_command_without_virtualenv(command)
+
+    f = open("extracted_book.txt", "r")
+    book_text = f.read()
+
+    return book_text
 
 def fix_unterminated_quotes(text: str):
     """Fixes unterminated quotes in the given text."""
@@ -169,7 +185,7 @@ def fix_unterminated_text(input_text):
 
 def main():
     # Default book path
-    book_path = "./sample_book_and_audio/sample_book.txt"
+    book_path = "./sample_book_and_audio/Adventure of the Lost Treasure, The - Prakhar Sharma.epub"
 
     # Check if a path is provided via command-line arguments
     if len(sys.argv) > 1:
@@ -184,9 +200,30 @@ def main():
 
     print("✅ Book path set. Proceeding...\n")
 
+    print("\n🔧 Text Decoding Options:\n")
+
+    text_decoding_option = input(
+        "❓ Do you want to extract and decode the text using textract or calibre ?\n"
+        "📌 Use calibre for better formatted results, wider compatibility for ebook formats and if you have it installed.\n"
+        "➡️ Answer (textract/calibre). Default is **textract**: "
+    ).strip().lower()
+
     print("✍️ Decoding the book...\n")
 
-    text: str = textract.process(book_path, encoding='utf-8').decode() # decode using textract
+    if(text_decoding_option == "calibre"):
+        is_calibre_installed = check_if_calibre_is_installed()
+
+        if is_calibre_installed:
+            print("✅ Calibre is installed. Using calibre to decode the book...\n")
+            text: str = extract_text_from_book_using_calibre(book_path)
+        else:
+            print("⚠️ Calibre is not installed. Please install it first and make sure **calibre** and **ebook-convert** commands are available in your PATH.")
+            return
+    else:
+        print("✅ Using textract to decode the book...\n")
+        text: str = extract_text_from_book_using_textract(book_path)
+
+    text: str = extract_text_from_book_using_calibre(book_path)
 
     print("✍️ Normalizing the text by replacing curly quotes and apostrophes with standard ASCII equivalents...\n")
 

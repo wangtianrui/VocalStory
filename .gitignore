@@ -1,6 +1,8 @@
+__pycache__/
 books/
 generated_audiobooks/
 audio_samples/
+temp_audio/
 .venv/
 .DS_Store
 .env

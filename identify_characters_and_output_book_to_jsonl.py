@@ -27,6 +27,7 @@ from tqdm import tqdm
 import torch
 from gliner import GLiNER
 import warnings
+from utils.file_utils import write_jsons_to_jsonl_file, empty_file, write_json_to_file
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -53,40 +54,6 @@ else:
     print("⚪ Using **CPU** backend (No compatible GPU found)")
 
 print("✅ Model is ready!\n")
-
-def empty_file(file_name):
-    # Open the file in write mode to make it empty
-    with open(file_name, 'w') as file:
-        pass  # No content is written, so the file becomes empty
-
-def write_json_to_file(data, file_name):
-    """
-    Writes a JSON object to a file.
-
-    Args:
-        data (dict): The JSON object to write.
-        file_name (str): The name of the file to which to write the JSON object.
-
-    The file is opened in write mode, so the contents of the file will be overwritten.
-    If the file does not exist, it will be created.
-    """
-    with open(file_name, 'w') as json_file:
-        json.dump(data, json_file, indent=4)
-
-def write_jsons_to_jsonl_file(json_objects, file_name):
-    """
-    Writes a list of JSON objects to a JSONL file.
-
-    Args:
-        json_objects (list[dict]): A list of dictionaries representing the JSON objects to write.
-        file_name (str): The name of the file to which to write the JSON objects.
-
-    The file is opened in append mode, so the JSON objects will be appended to the
-    existing file contents. If the file does not exist, it will be created.
-    """
-    with open(file_name, 'a') as jsonl_file:
-        for obj in json_objects:
-            jsonl_file.write(json.dumps(obj) + '\n')
 
 def extract_dialogues(text):
     """Extract dialogue lines enclosed in quotes."""

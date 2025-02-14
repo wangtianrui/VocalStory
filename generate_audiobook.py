@@ -22,6 +22,10 @@ import json
 import os
 import re
 import time
+import sys
+from utils.run_shell_commands import check_if_ffmpeg_is_installed, check_if_calibre_is_installed
+from utils.file_utils import read_json, empty_directory
+from utils.m4b_audiobook_utils import merge_chapters_to_m4b, merge_chapters_to_standard_audio_file
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,14 +39,6 @@ client = OpenAI(
     base_url=KOKORO_BASE_URL, api_key=KOKORO_API_KEY
 )
 
-def read_json(filename):
-    # Open the JSON file
-    with open(filename, 'r') as file:
-        # Load the JSON data
-        data = json.load(file)
-
-        return data
-    
 def split_and_annotate_text(text):
     """Splits text into dialogue and narration while annotating each segment."""
     parts = re.split(r'("[^"]+")', text)  # Keep dialogues in the split result
@@ -56,6 +52,15 @@ def split_and_annotate_text(text):
             })
 
     return annotated_parts
+
+def check_and_extract_chapter_heading(line):
+    """Detects if a line is a chapter heading based on common patterns."""
+    matched_text = re.match(r'^(Chapter|Part)?\s*\d+', line, re.IGNORECASE)
+
+    if bool(matched_text):
+        return line, bool(matched_text)
+    else:
+        return None, False
     
 def find_voice_for_gender_score(character: str, character_gender_map, kokoro_voice_map):
     """
@@ -76,7 +81,7 @@ def find_voice_for_gender_score(character: str, character_gender_map, kokoro_voi
         if score == character_gender_score:
             return voice
 
-def generate_audio_with_single_voice(output_format):
+def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=False, book_path=""):
     """
     Generates an audiobook using a single voice for narration and another voice for dialogues.
     Takes in output_format as an argument for the output format of the audio.
@@ -99,41 +104,63 @@ def generate_audio_with_single_voice(output_format):
 
     # Get the total number of lines to process for the progress bar
     total_size = len(lines)
+    chapter_index = 1
+    current_chapter_audio = f"Introduction.{output_format}"
+    chapter_files = []
+    temp_audio_dir = "temp_audio"
+    os.makedirs(temp_audio_dir, exist_ok=True)
+    empty_directory(temp_audio_dir)
 
     with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
         # Open a file for writing the generated audio
-        with open(f"generated_audiobooks/audiobook.{output_format}", "wb") as audio_file:
+        with open(f"generated_audiobooks/audiobook.{output_format}", "wb") as combined_audio_file:
             for line in lines:
                 line = line.strip()
                 if not line:
                     continue
 
-                annotated_parts = split_and_annotate_text(line) # split the line into annotated parts containing dialogue and narration
+                # If the line is a chapter heading, start a new audio file
+                match, is_chapter_heading = check_and_extract_chapter_heading(line)
+                if is_chapter_heading:
+                    chapter_index += 1
+                    current_chapter_audio = f"{match}.{output_format}"
+                
+                chapter_path = os.path.join(temp_audio_dir, current_chapter_audio)
 
-                for part in annotated_parts: # generate audio for each part : either dialogue or narration
-                    text_to_speak = part["text"]
-                    voice_to_speak_in = narrator_voice
-                    if part["type"] == "narration":
+                with open(chapter_path, "ab") as audio_file:  # Append mode
+                    annotated_parts = split_and_annotate_text(line) # split the line into annotated parts containing dialogue and narration
+
+                    for part in annotated_parts: # generate audio for each part : either dialogue or narration
+                        text_to_speak = part["text"]
                         voice_to_speak_in = narrator_voice
-                    elif part["type"] == "dialogue":
-                        voice_to_speak_in = dialogue_voice
+                        if part["type"] == "narration":
+                            voice_to_speak_in = narrator_voice
+                        elif part["type"] == "dialogue":
+                            voice_to_speak_in = dialogue_voice
 
-                    # Generate audio for the line using the TTS service
-                    with client.audio.speech.with_streaming_response.create(
-                        model="kokoro",
-                        voice=voice_to_speak_in,
-                        response_format=output_format,
-                        speed=0.85,
-                        input=text_to_speak
-                    ) as response:
-                        # Stream the audio chunks and write them to the output file
-                        for chunk in response.iter_bytes():
-                            audio_file.write(chunk)
-                    
-                    # Update the progress bar after processing each line
+                        # Generate audio for the line using the TTS service
+                        with client.audio.speech.with_streaming_response.create(
+                            model="kokoro",
+                            voice=voice_to_speak_in,
+                            response_format=output_format,
+                            speed=0.85,
+                            input=text_to_speak
+                        ) as response:
+                            # Stream the audio chunks and write them to the output file
+                            for chunk in response.iter_bytes():
+                                audio_file.write(chunk)
+                                combined_audio_file.write(chunk)
+                                    
+                        
+                if current_chapter_audio not in chapter_files:
+                    chapter_files.append(current_chapter_audio)
                 overall_pbar.update(1)
 
-def generate_audio_with_multiple_voices(output_format):
+    if(generate_m4b_audiobook_file):
+        # Merge all chapter files into a final m4b audiobook
+        merge_chapters_to_m4b(book_path, chapter_files)
+
+def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_file=False, book_path=""):
     """
     Generates an audiobook with multiple voices by processing a JSONL file containing speaker-attributed lines.
     Takes in output_format as an argument for the output format of the audio.
@@ -173,74 +200,135 @@ def generate_audio_with_multiple_voices(output_format):
     
     # Get the total number of lines to process for the progress bar
     total_size = len(json_data_array)
+    chapter_index = 1
+    current_chapter_audio = f"Introduction.{output_format}"
+    chapter_files = []
+    temp_audio_dir = "temp_audio"
+    os.makedirs(temp_audio_dir, exist_ok=True)
+    empty_directory(temp_audio_dir)
     
     # Initialize a progress bar to track the audio generation process
     with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
         # Open a file for writing the generated audio
-        with open(f"generated_audiobooks/audiobook.{output_format}", "wb") as audio_file:
+        with open(f"generated_audiobooks/audiobook.{output_format}", "wb") as combined_audio_file:
             for doc in json_data_array:
                 # Extract the line of text and the speaker from the JSON object
-                line = doc["line"]
-                speaker = doc["speaker"]
-                
-                # Find the appropriate voice for the speaker based on gender and voice mapping
-                speaker_voice = find_voice_for_gender_score(speaker, character_gender_map, kokoro_voice_map)
-                line = line.strip()
+                line = doc["line"].strip()
 
                 # Skip empty lines
                 if not line:
                     continue
 
-                annotated_parts = split_and_annotate_text(line) # split the line into annotated parts containing dialogue and narration
+                speaker = doc["speaker"]
+                
+                # Find the appropriate voice for the speaker based on gender and voice mapping
+                speaker_voice = find_voice_for_gender_score(speaker, character_gender_map, kokoro_voice_map)
 
-                for part in annotated_parts: # generate audio for each part : either dialogue or narration
-                    text_to_speak = part["text"]
-                    voice_to_speak_in = narrator_voice
-                    if part["type"] == "narration":
+                # If the line is a chapter heading, start a new audio file
+                match, is_chapter_heading = check_and_extract_chapter_heading(line)
+                if is_chapter_heading:
+                    chapter_index += 1
+                    current_chapter_audio = f"{match}.{output_format}"
+                
+                chapter_path = os.path.join(temp_audio_dir, current_chapter_audio)
+
+                with open(chapter_path, "ab") as audio_file:  # Append mode
+                    annotated_parts = split_and_annotate_text(line) # split the line into annotated parts containing dialogue and narration
+
+                    for part in annotated_parts: # generate audio for each part : either dialogue or narration
+                        text_to_speak = part["text"]
                         voice_to_speak_in = narrator_voice
-                    elif part["type"] == "dialogue":
-                        voice_to_speak_in = speaker_voice
+                        if part["type"] == "narration":
+                            voice_to_speak_in = narrator_voice
+                        elif part["type"] == "dialogue":
+                            voice_to_speak_in = speaker_voice
 
-                    # Generate audio for the line using the TTS service
-                    with client.audio.speech.with_streaming_response.create(
-                        model="kokoro",
-                        voice=voice_to_speak_in,
-                        response_format=output_format,
-                        speed=0.85,
-                        input=text_to_speak
-                    ) as response:
-                        # Stream the audio chunks and write them to the output file
-                        for chunk in response.iter_bytes():
-                            audio_file.write(chunk)
+                        # Generate audio for the line using the TTS service
+                        with client.audio.speech.with_streaming_response.create(
+                            model="kokoro",
+                            voice=voice_to_speak_in,
+                            response_format=output_format,
+                            speed=0.85,
+                            input=text_to_speak
+                        ) as response:
+                            # Stream the audio chunks and write them to the output file
+                            for chunk in response.iter_bytes():
+                                audio_file.write(chunk)
+                                combined_audio_file.write(chunk)
                     
-                    # Update the progress bar after processing each line
+                if current_chapter_audio not in chapter_files:
+                    chapter_files.append(current_chapter_audio)
                 overall_pbar.update(1)
+
+    if(generate_m4b_audiobook_file):
+        # Merge all chapter files into a final m4b audiobook
+        merge_chapters_to_m4b(book_path, chapter_files)
 
 def main():
     os.makedirs("generated_audiobooks", exist_ok=True)
 
+    # Default values
+    book_path = "./sample_book_and_audio/Adventure of the Lost Treasure, The - Prakhar Sharma.epub"
+    generate_m4b_audiobook_file = False
+    output_format = "aac"
+
     # Prompt user for voice selection
     print("\n🎙️ **Audiobook Voice Selection**")
-    option = input("🔹 Enter **1** for **Single Voice** or **2** for **Multiple Voices**: ").strip()
+    voice_option = input("🔹 Enter **1** for **Single Voice** or **2** for **Multiple Voices**: ").strip()
 
-    # Prompt user for voice selection
-    print("\n🎙️ **Audiobook Output Format Selection**")
-    output_format = input("🔹 Choose between ['aac', 'mp3']. Other formats ['opus', 'flac', 'wav', 'pcm'] give incomplete audio or have error in them in Kokoro : ").strip()
+    # Prompt user for audiobook type selection
+    print("\n🎙️ **Audiobook Type Selection**")
+    print("🔹 Do you want the audiobook in M4B format (the standard format for audiobooks) with chapter timestamps and embedded book cover ? (Needs calibre and ffmpeg installed)")
+    print("🔹 OR do you want a standard audio file in an AAC/ MP3 format without any of the above features ?")
+    audiobook_type_option = input("🔹 Enter **1** for **M4B audiobook format** or **2** for **Standard Audio File (AAC/MP3)**: ").strip()
 
-    if(output_format not in ['aac', 'mp3']):
-        print("\n⚠️ Invalid output format! Please choose either 'aac' or 'mp3'.")
-        return
+    if audiobook_type_option == "1":
+        is_calibre_installed = check_if_calibre_is_installed()
+
+        if not is_calibre_installed:
+            print("⚠️ Calibre is not installed. Please install it first and make sure **calibre** and **ebook-meta** commands are available in your PATH.")
+            return
+        
+        is_ffmpeg_installed = check_if_ffmpeg_is_installed()
+
+        if not is_ffmpeg_installed:
+            print("⚠️ FFMpeg is not installed. Please install it first and make sure **ffmpeg** and **ffprobe** commands are available in your PATH.")
+            return
+
+        # Check if a path is provided via command-line arguments
+        if len(sys.argv) > 1:
+            book_path = sys.argv[1]
+            print(f"📂 Using book file from command-line argument: **{book_path}**")
+        else:
+            # Ask user for book file path if not provided
+            input_path = input("\n📖 Enter the **path to the book file**, needed for metadata and cover extraction. (Press Enter to use default): ").strip()
+            if input_path:
+                book_path = input_path
+            print(f"📂 Using book file: **{book_path}**")
+
+        print("✅ Book path set. Proceeding...\n")
+
+        generate_m4b_audiobook_file = True
+    else:
+        # Prompt user for audio format selection
+        print("\n🎙️ **Audiobook Output Format Selection**")
+        output_format = input("🔹 Choose between ['aac', 'mp3']. Other formats ['opus', 'flac', 'wav', 'pcm'] give incomplete audio or have error in them in Kokoro : ").strip()
+
+        if(output_format not in ['aac', 'mp3']):
+            print("\n⚠️ Invalid output format! Please choose either 'aac' or 'mp3'.")
+            return
 
     start_time = time.time()
 
-    if option == "1":
+    if voice_option == "1":
         print("\n🎧 Generating audiobook with a **single voice**...")
-        generate_audio_with_single_voice(output_format)
-    elif option == "2":
+        generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file, book_path)
+    elif voice_option == "2":
         print("\n🎭 Generating audiobook with **multiple voices**...")
-        generate_audio_with_multiple_voices(output_format)
+        generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_file, book_path)
     else:
         print("\n⚠️ Invalid option! Please restart and enter either **1** or **2**.")
+        return
 
     print(f"\n🎧 Audiobook is generated ! The audiobook is saved as **audiobook.{output_format}** in the **generated_audiobooks** directory in the current folder.")
 
