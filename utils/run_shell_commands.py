@@ -140,3 +140,18 @@ def run_shell_command_without_virtualenv(command):
     except Exception as e:
         print(f"Error: {e}")
         return None
+    
+def run_shell_command(command):
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+
+        return result
+        
+    except Exception as e:
+        print("Error in run_shell_command, running  run_shell_command_without_virtualenv")
+        return run_shell_command_without_virtualenv(command)

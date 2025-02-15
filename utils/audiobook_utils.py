@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import subprocess
 import re
 import os
-from utils.run_shell_commands import run_shell_command_without_virtualenv
+from utils.run_shell_commands import run_shell_command
 
 # Escape double quotes by replacing them with \"
 def escape_metadata(value):
@@ -37,11 +37,14 @@ def get_ebook_metadata_with_cover(book_path):
     Returns:
         dict: A dictionary containing the ebook's metadata.
     """
+    ebook_meta_bin_result = run_shell_command("which ebook-meta")
+    ebook_meta_bin_path = ebook_meta_bin_result.stdout.strip()
+
     # Command to extract metadata and cover image using ebook-meta
-    command = f"/usr/bin/ebook-meta '{book_path}' --get-cover cover.jpg"
+    command = f"{ebook_meta_bin_path} '{book_path}' --get-cover cover.jpg"
 
     # Run the command and capture the result
-    result = run_shell_command_without_virtualenv(command)
+    result = run_shell_command(command)
 
     metadata = {}
     # Parse the command output to extract metadata

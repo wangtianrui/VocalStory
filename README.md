@@ -79,7 +79,11 @@ The project consists of three main components:
    ```bash
    pip install -r requirements_gpu.txt
    ```
-6. Install [calibre](https://calibre-ebook.com/download) (Optional dependency, needed if you need better text decoding capabilities, wider compatibility and want to create M4B audiobook)
+6. Install [calibre](https://calibre-ebook.com/download) (Optional dependency, needed if you need better text decoding capabilities, wider compatibility and want to create M4B audiobook). Also make sure that calibre is present in your PATH. For MacOS, do the following to add it to the PATH:
+```bash
+echo 'export PATH="/Applications/calibre.app/Contents/MacOS:$PATH"' >> ~/.zshrc
+source ~/.zshrc  # Apply changes
+```
 7. Install [ffmpeg](https://www.ffmpeg.org/download.html) (Needed for audio output format conversion and if you want to create M4B audiobook)
 8. Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen2.5-14b-instruct-mlx`).
 9. Set up the Kokoro TTS model. Use CUDA-based GPU inference for faster processing or use CPU inference via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI).

@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import sys
 import textract
-from utils.run_shell_commands import run_shell_command_without_virtualenv, check_if_calibre_is_installed
+from utils.run_shell_commands import run_shell_command, check_if_calibre_is_installed
 
 def extract_text_from_book_using_textract(book_path):
     text: str = textract.process(book_path, encoding='utf-8').decode() # decode using textract
@@ -36,11 +36,14 @@ def extract_text_from_book_using_calibre(book_path):
     Returns:
         str: The extracted text from the book.
     """
+    ebook_convert_bin_result = run_shell_command("which ebook-convert")
+    ebook_convert_bin_path = ebook_convert_bin_result.stdout.strip()
+
     # Command to convert the book into a plain text file using ebook-convert
-    command = f"/usr/bin/ebook-convert '{book_path}' extracted_book.txt"
+    command = f"{ebook_convert_bin_path} '{book_path}' extracted_book.txt"
     
     # Execute the command without using a virtual environment
-    result = run_shell_command_without_virtualenv(command)
+    result = run_shell_command(command)
 
     # Open the resulting text file and read its contents
     with open("extracted_book.txt", "r") as f:
