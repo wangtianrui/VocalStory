@@ -3,6 +3,7 @@ books/
 generated_audiobooks/
 audio_samples/
 temp_audio/
+todo.md
 .venv/
 .DS_Store
 .env

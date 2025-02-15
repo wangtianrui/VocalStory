@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import subprocess
+import re
 import os
 from utils.run_shell_commands import run_shell_command_without_virtualenv
 
@@ -51,7 +52,7 @@ def get_ebook_metadata_with_cover(book_path):
     
     return metadata
     
-def get_audio_duration(file_path):
+def get_audio_duration_using_ffprobe(file_path):
     """
     Returns the duration of an audio file in milliseconds using ffprobe.
 
@@ -76,6 +77,26 @@ def get_audio_duration(file_path):
     # Convert the output to an integer (in milliseconds) and return it
     return int(float(result.stdout.strip()) * 1000)
 
+def get_audio_duration_using_raw_ffmpeg(file_path):
+    """Returns the duration of an audio file using FFmpeg."""
+    cmd = ["ffmpeg", "-y", "-i", file_path, "-f", "null", "-"]
+    
+    try:
+        result = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        stderr_output = result.stderr
+
+        # Look for the final timestamp (time=xx:xx:xx.xx) in FFmpeg output
+        match = re.search(r"time=(\d+):(\d+):([\d.]+)", stderr_output)
+        if match:
+            hours, minutes, seconds = map(float, match.groups())
+            return int(float((hours * 3600 + minutes * 60 + seconds) * 1000))
+        else:
+            return None  # Duration not found
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
 def generate_chapters_file(chapter_files, output_file="chapters.txt"):
     """
     Generates a chapter metadata file for FFmpeg.
@@ -90,8 +111,13 @@ def generate_chapters_file(chapter_files, output_file="chapters.txt"):
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(";FFMETADATA1\n")
         for chapter in chapter_files:
-            duration = get_audio_duration(os.path.join("temp_audio", chapter))
+            duration = get_audio_duration_using_ffprobe(os.path.join("temp_audio", chapter))
             end_time = start_time + duration
+
+            print("chapter", chapter)
+            print("duration", duration)
+            print("start_time", start_time)
+            print("end_time", end_time)
             
             # Write the chapter metadata to the file
             f.write("[CHAPTER]\n")
@@ -102,6 +128,80 @@ def generate_chapters_file(chapter_files, output_file="chapters.txt"):
             
             # Update the start time for the next chapter
             start_time = end_time
+
+def create_m4a_file_from_raw_aac_file(input_file_path, output_file_path):
+    cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c", "copy", output_file_path]
+    
+    try:
+        result = subprocess.run(cmd)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def create_mp3_file_from_raw_aac_file(input_file_path, output_file_path):
+    cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c:a", "libmp3lame", "-b:a", "128k", output_file_path]
+    
+    try:
+        result = subprocess.run(cmd)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def create_wav_file_from_raw_aac_file(input_file_path, output_file_path):
+    cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c:a", "pcm_s16le", "-ar", "44100", output_file_path]
+    
+    try:
+        result = subprocess.run(cmd)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def create_opus_file_from_raw_aac_file(input_file_path, output_file_path):
+    cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c:a", "libopus", "-b:a", "128k", output_file_path]
+    
+    try:
+        result = subprocess.run(cmd)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def create_flac_file_from_raw_aac_file(input_file_path, output_file_path):
+    cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c:a", "flac", output_file_path]
+    
+    try:
+        result = subprocess.run(cmd)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def create_pcm_file_from_raw_aac_file(input_file_path, output_file_path):
+    cmd = ["ffmpeg", "-y", "-i", input_file_path, "-f", "s16le", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", output_file_path]
+    
+    try:
+        result = subprocess.run(cmd)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def convert_audio_file_formats(output_format, folder_path, file_name):
+        input_path = os.path.join(folder_path, f"{file_name}.aac")
+        output_path = os.path.join(folder_path, f"{file_name}.{output_format}")
+
+        if output_format == "aac":
+            # Already generated
+            pass
+        elif output_format == "m4a":
+            create_m4a_file_from_raw_aac_file(input_path, output_path)
+        elif output_format == "mp3":
+            create_mp3_file_from_raw_aac_file(input_path, output_path)
+        elif output_format == "wav":
+            create_wav_file_from_raw_aac_file(input_path, output_path)
+        elif output_format == "opus":
+            create_opus_file_from_raw_aac_file(input_path, output_path)
+        elif output_format == "flac":
+            create_flac_file_from_raw_aac_file(input_path, output_path)
+        elif output_format == "pcm":
+            create_pcm_file_from_raw_aac_file(input_path, output_path)
     
 def merge_chapters_to_m4b(book_path, chapter_files):
     """

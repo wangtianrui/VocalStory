@@ -25,7 +25,7 @@ import time
 import sys
 from utils.run_shell_commands import check_if_ffmpeg_is_installed, check_if_calibre_is_installed
 from utils.file_utils import read_json, empty_directory
-from utils.m4b_audiobook_utils import merge_chapters_to_m4b, merge_chapters_to_standard_audio_file
+from utils.audiobook_utils import merge_chapters_to_m4b, convert_audio_file_formats
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -53,15 +53,15 @@ def split_and_annotate_text(text):
 
     return annotated_parts
 
-def check_and_extract_chapter_heading(line):
+def check_if_chapter_heading(line):
     """
-    Checks if a line is a chapter heading based on common patterns and returns the chapter heading if it is.
+    Checks if a line is a chapter heading based on common patterns and returns true or false if it is.
 
     Args:
         line (str): The line to check.
 
     Returns:
-        tuple: A tuple containing the chapter heading if matched, otherwise `None`, and a boolean indicating if the line matched the pattern.
+        bool: A boolean indicating if the line matched the pattern.
     """
 
     # Patterns for chapter headings
@@ -71,10 +71,7 @@ def check_and_extract_chapter_heading(line):
     matched_text = re.match(pattern, line, re.IGNORECASE)
 
     # Return the chapter heading if matched
-    if bool(matched_text):
-        return line, bool(matched_text)
-    else:
-        return None, False
+    return bool(matched_text)
     
 def find_voice_for_gender_score(character: str, character_gender_map, kokoro_voice_map):
     """
@@ -129,7 +126,7 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
     # Set the total number of lines to process for the progress bar
     total_size = len(lines)
     chapter_index = 1
-    current_chapter_audio = f"Introduction.{output_format}"
+    current_chapter_audio = f"Introduction.aac"
     chapter_files = []
     temp_audio_dir = "temp_audio"
     os.makedirs(temp_audio_dir, exist_ok=True)
@@ -138,17 +135,17 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
     # Create a progress bar
     with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
         # Open a file for writing the generated audio
-        with open(f"generated_audiobooks/audiobook.{output_format}", "wb") as combined_audio_file:
+        with open(f"generated_audiobooks/audiobook.aac", "wb") as combined_audio_file:
             for line in lines:
                 line = line.strip()
                 if not line:
                     continue
 
                 # If the line is a chapter heading, start a new audio file
-                match, is_chapter_heading = check_and_extract_chapter_heading(line)
+                is_chapter_heading = check_if_chapter_heading(line)
                 if is_chapter_heading:
                     chapter_index += 1
-                    current_chapter_audio = f"{match}.{output_format}"
+                    current_chapter_audio = f"{line}.aac"
                 
                 chapter_path = os.path.join(temp_audio_dir, current_chapter_audio)
 
@@ -168,7 +165,7 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
                         with client.audio.speech.with_streaming_response.create(
                             model="kokoro",
                             voice=voice_to_speak_in,
-                            response_format=output_format,
+                            response_format="aac",
                             speed=0.85,
                             input=text_to_speak
                         ) as response:
@@ -182,9 +179,17 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
                     chapter_files.append(current_chapter_audio)
                 overall_pbar.update(1)
 
-    if(generate_m4b_audiobook_file):
+    if generate_m4b_audiobook_file:
+        m4a_chapter_files = []
+        for chapter in chapter_files:
+            chapter_name = chapter.split('.')[0]
+            m4a_chapter_files.append(f"{chapter_name}.m4a")
+            convert_audio_file_formats("m4a", temp_audio_dir, chapter_name)
+
         # Merge all chapter files into a final m4b audiobook
-        merge_chapters_to_m4b(book_path, chapter_files)
+        merge_chapters_to_m4b(book_path, m4a_chapter_files)
+    else:
+        convert_audio_file_formats(output_format, "generated_audiobooks", "audiobook")
 
 def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_file=False, book_path=""):
     """
@@ -226,7 +231,7 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
     # Get the total number of lines to process for the progress bar
     total_size = len(json_data_array)
     chapter_index = 1
-    current_chapter_audio = f"Introduction.{output_format}"
+    current_chapter_audio = f"Introduction.aac"
     chapter_files = []
     temp_audio_dir = "temp_audio"
     os.makedirs(temp_audio_dir, exist_ok=True)
@@ -235,7 +240,7 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
     # Initialize a progress bar to track the audio generation process
     with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
         # Open a file for writing the generated audio
-        with open(f"generated_audiobooks/audiobook.{output_format}", "wb") as combined_audio_file:
+        with open(f"generated_audiobooks/audiobook.aac", "wb") as combined_audio_file:
             for doc in json_data_array:
                 # Extract the line of text and the speaker from the JSON object
                 line = doc["line"].strip()
@@ -250,10 +255,10 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
                 speaker_voice = find_voice_for_gender_score(speaker, character_gender_map, kokoro_voice_map)
 
                 # If the line is a chapter heading, start a new audio file
-                match, is_chapter_heading = check_and_extract_chapter_heading(line)
+                is_chapter_heading = check_if_chapter_heading(line)
                 if is_chapter_heading:
                     chapter_index += 1
-                    current_chapter_audio = f"{match}.{output_format}"
+                    current_chapter_audio = f"{line}.aac"
                 
                 chapter_path = os.path.join(temp_audio_dir, current_chapter_audio)
 
@@ -269,7 +274,7 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
                         with client.audio.speech.with_streaming_response.create(
                             model="kokoro",
                             voice=voice_to_speak_in,
-                            response_format=output_format,
+                            response_format="aac",
                             speed=0.85,
                             input=text_to_speak
                         ) as response:
@@ -283,8 +288,17 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
                 overall_pbar.update(1)
 
     if generate_m4b_audiobook_file:
+        m4a_chapter_files = []
+        for chapter in chapter_files:
+            chapter_name = chapter.split('.')[0]
+            m4a_chapter_files.append(f"{chapter_name}.m4a")
+            convert_audio_file_formats("m4a", temp_audio_dir, chapter_name)
+
         # Merge all chapter files into a final m4b audiobook
-        merge_chapters_to_m4b(book_path, chapter_files)
+        merge_chapters_to_m4b(book_path, m4a_chapter_files)
+    else:
+        convert_audio_file_formats(output_format, "generated_audiobooks", "audiobook")
+
 
 def main():
     os.makedirs("generated_audiobooks", exist_ok=True)
@@ -301,8 +315,8 @@ def main():
     # Prompt user for audiobook type selection
     print("\n🎙️ **Audiobook Type Selection**")
     print("🔹 Do you want the audiobook in M4B format (the standard format for audiobooks) with chapter timestamps and embedded book cover ? (Needs calibre and ffmpeg installed)")
-    print("🔹 OR do you want a standard audio file in an AAC/ MP3 format without any of the above features ?")
-    audiobook_type_option = input("🔹 Enter **1** for **M4B audiobook format** or **2** for **Standard Audio File (AAC/MP3)**: ").strip()
+    print("🔹 OR do you want a standard audio file in either of ['aac', 'm4a', 'mp3', 'wav', 'opus', 'flac', 'pcm'] formats without any of the above features ?")
+    audiobook_type_option = input("🔹 Enter **1** for **M4B audiobook format** or **2** for **Standard Audio File**: ").strip()
 
     if audiobook_type_option == "1":
         is_calibre_installed = check_if_calibre_is_installed()
@@ -334,10 +348,10 @@ def main():
     else:
         # Prompt user for audio format selection
         print("\n🎙️ **Audiobook Output Format Selection**")
-        output_format = input("🔹 Choose between ['aac', 'mp3']. Other formats ['opus', 'flac', 'wav', 'pcm'] give incomplete audio or have error in them in Kokoro : ").strip()
+        output_format = input("🔹 Choose between ['aac', 'm4a', 'mp3', 'wav', 'opus', 'flac', 'pcm']. ").strip()
 
-        if(output_format not in ['aac', 'mp3']):
-            print("\n⚠️ Invalid output format! Please choose either 'aac' or 'mp3'.")
+        if(output_format not in ["aac", "m4a", "mp3", "wav", "opus", "flac", "pcm"]):
+            print("\n⚠️ Invalid output format! Please choose from the give options")
             return
 
     start_time = time.time()
