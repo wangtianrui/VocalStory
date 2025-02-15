@@ -54,9 +54,23 @@ def split_and_annotate_text(text):
     return annotated_parts
 
 def check_and_extract_chapter_heading(line):
-    """Detects if a line is a chapter heading based on common patterns."""
-    matched_text = re.match(r'^(Chapter|Part)?\s*\d+', line, re.IGNORECASE)
+    """
+    Checks if a line is a chapter heading based on common patterns and returns the chapter heading if it is.
 
+    Args:
+        line (str): The line to check.
+
+    Returns:
+        tuple: A tuple containing the chapter heading if matched, otherwise `None`, and a boolean indicating if the line matched the pattern.
+    """
+
+    # Patterns for chapter headings
+    pattern = r'^(Chapter|Part)?\s*\d+'
+
+    # Check if the line matches the pattern
+    matched_text = re.match(pattern, line, re.IGNORECASE)
+
+    # Return the chapter heading if matched
     if bool(matched_text):
         return line, bool(matched_text)
     else:
@@ -65,6 +79,10 @@ def check_and_extract_chapter_heading(line):
 def find_voice_for_gender_score(character: str, character_gender_map, kokoro_voice_map):
     """
     Finds the appropriate voice for a character based on their gender score.
+
+    This function takes in the name of a character, a dictionary mapping character names to their gender scores,
+    and a dictionary mapping voice identifiers to gender scores. It returns the voice identifier that matches the
+    character's gender score.
 
     Args:
         character (str): The name of the character for whom the voice is being determined.
@@ -75,9 +93,13 @@ def find_voice_for_gender_score(character: str, character_gender_map, kokoro_voi
         str: The voice identifier that matches the character's gender score.
     """
 
+    # Get the character's gender score
     character_gender_score_doc = character_gender_map["scores"][character.lower()]
     character_gender_score = character_gender_score_doc["gender_score"]
+
+    # Iterate over the voice identifiers and their scores
     for voice, score in kokoro_voice_map.items():
+        # Find the voice identifier that matches the character's gender score
         if score == character_gender_score:
             return voice
 
@@ -95,14 +117,16 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
 
     The function prints a message when the generation is complete.
     """
-    f = open("converted_book.txt", "r")
-    text = f.read()
+    # Read the text from the file
+    with open("converted_book.txt", "r") as f:
+        text = f.read()
     lines = text.split("\n")
 
+    # Set the voices to be used
     narrator_voice = "af_heart" # voice to be used for narration
     dialogue_voice = "am_fenrir" # voice to be used for dialogue
 
-    # Get the total number of lines to process for the progress bar
+    # Set the total number of lines to process for the progress bar
     total_size = len(lines)
     chapter_index = 1
     current_chapter_audio = f"Introduction.{output_format}"
@@ -111,6 +135,7 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
     os.makedirs(temp_audio_dir, exist_ok=True)
     empty_directory(temp_audio_dir)
 
+    # Create a progress bar
     with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
         # Open a file for writing the generated audio
         with open(f"generated_audiobooks/audiobook.{output_format}", "wb") as combined_audio_file:
@@ -127,6 +152,7 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
                 
                 chapter_path = os.path.join(temp_audio_dir, current_chapter_audio)
 
+                # Open a file for writing the audio for this chapter
                 with open(chapter_path, "ab") as audio_file:  # Append mode
                     annotated_parts = split_and_annotate_text(line) # split the line into annotated parts containing dialogue and narration
 
@@ -189,14 +215,13 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
         for line in file:
             # Parse each line as a JSON object
             json_object = json.loads(line.strip())
-            
             # Append the parsed JSON object to the array
             json_data_array.append(json_object)
 
     # Load mappings for character gender and voice selection
     character_gender_map = read_json("character_gender_map.json")
     kokoro_voice_map = read_json("kokoro_voice_map.json")
-    narrator_voice = find_voice_for_gender_score("narrator", character_gender_map, kokoro_voice_map) # Loading the default narrator voice
+    narrator_voice = find_voice_for_gender_score("narrator", character_gender_map, kokoro_voice_map)  # Loading the default narrator voice
     
     # Get the total number of lines to process for the progress bar
     total_size = len(json_data_array)
@@ -232,16 +257,13 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
                 
                 chapter_path = os.path.join(temp_audio_dir, current_chapter_audio)
 
+                # Open a file for writing the audio for this chapter
                 with open(chapter_path, "ab") as audio_file:  # Append mode
-                    annotated_parts = split_and_annotate_text(line) # split the line into annotated parts containing dialogue and narration
+                    annotated_parts = split_and_annotate_text(line)  # Split the line into annotated parts containing dialogue and narration
 
-                    for part in annotated_parts: # generate audio for each part : either dialogue or narration
+                    for part in annotated_parts:  # Generate audio for each part: either dialogue or narration
                         text_to_speak = part["text"]
-                        voice_to_speak_in = narrator_voice
-                        if part["type"] == "narration":
-                            voice_to_speak_in = narrator_voice
-                        elif part["type"] == "dialogue":
-                            voice_to_speak_in = speaker_voice
+                        voice_to_speak_in = narrator_voice if part["type"] == "narration" else speaker_voice
 
                         # Generate audio for the line using the TTS service
                         with client.audio.speech.with_streaming_response.create(
@@ -260,7 +282,7 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
                     chapter_files.append(current_chapter_audio)
                 overall_pbar.update(1)
 
-    if(generate_m4b_audiobook_file):
+    if generate_m4b_audiobook_file:
         # Merge all chapter files into a final m4b audiobook
         merge_chapters_to_m4b(book_path, chapter_files)
 
@@ -268,7 +290,7 @@ def main():
     os.makedirs("generated_audiobooks", exist_ok=True)
 
     # Default values
-    book_path = "./sample_book_and_audio/Adventure of the Lost Treasure, The - Prakhar Sharma.epub"
+    book_path = "./sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.epub"
     generate_m4b_audiobook_file = False
     output_format = "aac"
 
@@ -330,7 +352,7 @@ def main():
         print("\n⚠️ Invalid option! Please restart and enter either **1** or **2**.")
         return
 
-    print(f"\n🎧 Audiobook is generated ! The audiobook is saved as **audiobook.{output_format}** in the **generated_audiobooks** directory in the current folder.")
+    print(f"\n🎧 Audiobook is generated ! The audiobook is saved as **audiobook.{"m4b" if generate_m4b_audiobook_file else output_format}** in the **generated_audiobooks** directory in the current folder.")
 
     end_time = time.time()
 

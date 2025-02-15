@@ -2,7 +2,7 @@
 
 ## Overview
 
-Audiobook Creator is an open-source project designed to convert books in various text formats (e.g., EPUB, PDF) into fully voiced audiobooks with intelligent character voice attribution. It leverages modern Natural Language Processing (NLP), Large Language Models (LLMs), and Text-to-Speech (TTS) technologies to create an engaging and dynamic audiobook experience. The project is licensed under the GNU General Public License v3.0 (GPL-3.0), ensuring that it remains free and open for everyone to use, modify, and distribute.
+Audiobook Creator is an open-source project designed to convert books in various text formats (e.g., EPUB, PDF, etc.) into fully voiced audiobooks with intelligent character voice attribution. It leverages modern Natural Language Processing (NLP), Large Language Models (LLMs), and Text-to-Speech (TTS) technologies to create an engaging and dynamic audiobook experience. The project is licensed under the GNU General Public License v3.0 (GPL-3.0), ensuring that it remains free and open for everyone to use, modify, and distribute.
 
 Sample multi voice audio for a short story : https://audio.com/prakhar-sharma/audio/generated-sample-multi-voice-audiobook
 
@@ -26,10 +26,11 @@ The project consists of three main components:
    - Offers two narration modes:
      - **Single-Voice**: Uses a single voice for narration and another voice for dialogues for the entire book.
      - **Multi-Voice**: Assigns different voices to characters based on their gender scores.
-   - Saves the audiobook in MP3/ AAC format to `generated_audiobooks/audiobook.{output_format}`.
+   - Saves the audiobook in M4B/ MP3/ AAC format to `generated_audiobooks/audiobook.{output_format}`.
 
 ## Key Features
 
+- **M4B Audiobook Creation**: Creates compatible audiobooks with covers, metadata, chapter timestamps etc. in M4B format.
 - **Multi-Format Support**: Converts books from various formats (EPUB, PDF, etc.) into plain text.
 - **Text Cleaning**: Ensures the book text is well-formatted and readable.
 - **Character Identification**: Identifies characters and infers their attributes (gender, age) using advanced NLP techniques.
@@ -39,25 +40,16 @@ The project consists of three main components:
 
 ## Sample Text and Audio
 
-- `sample_book_and_audio/sample_book.txt`: A sample short story as a starting point.
+- `sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.epub`: A sample short story in epub format as a starting point.
+- `sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.pdf`: A sample short story in pdf format as a starting point.
+- `sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.txt`: A sample short story in txt format as a starting point.
 - `sample_book_and_audio/converted_book.txt`: The cleaned output after text processing.
 - `sample_book_and_audio/speaker_attributed_book.jsonl`: The generated speaker-attributed JSONL file.
 - `sample_book_and_audio/character_gender_map.json`: The generated character metadata.
-- `sample_book_and_audio/sample_multi_voice_audio.aac`: The generated sample multi-voice audiobook from the story.
-- `sample_book_and_audio/sample_single_voice_audio.aac`: The generated sample single-voice audiobook from the story.
-
-## Requirements
-
-- Python 3.12
-- Pip 24.0 (MANDATORY)
-- Required Python packages:
-  - `textract` (For extracting book contents)
-  - `openai` (For calling a locally or web-hosted LLM with an OpenAI-compatible endpoint)
-  - `requests`
-  - `tqdm` (For progress bar updates)
-  - `gliner` (For Named Entity Recognition to identify characters in dialogue)
-- A locally or web-hosted LLM (e.g., `qwen2.5-14b-instruct-mlx`) with an OpenAI-compatible endpoint.
-- Kokoro TTS model hosted via FastAPI (see [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI)).
+- `sample_book_and_audio/sample_multi_voice_audiobook.m4b`: The generated sample multi-voice audiobook in M4B format with cover and chapters from the story.
+- `sample_book_and_audio/sample_multi_voice_audio.aac`: The generated sample multi-voice AAC audio file from the story.
+- `sample_book_and_audio/sample_multi_voice_audio.mp3`: The generated sample multi-voice MP3 audio file from the story.
+- `sample_book_and_audio/sample_single_voice_audio.aac`: The generated sample single-voice AAC audio file from the story.
 
 ## Installation
 
@@ -85,9 +77,11 @@ The project consists of three main components:
    ```bash
    pip install -r requirements_gpu.txt
    ```
-6. Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen2.5-14b-instruct-mlx`).
-7. Set up the Kokoro TTS model. Use CUDA-based GPU inference for faster processing or CPU inference via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI).
-8. Create a .env file from .env_sample and configure it with correct values
+6. Install [calibre](https://calibre-ebook.com/download) (Optional dependency, needed if you need better text decoding capabilities, wider compatibility and want to create M4B audiobook)
+7. Install [ffmpeg](https://www.ffmpeg.org/download.html) (Optional dependency, needed if you want to create M4B audiobook)
+8. Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen2.5-14b-instruct-mlx`).
+9. Set up the Kokoro TTS model. Use CUDA-based GPU inference for faster processing or use CPU inference via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI).
+10. Create a .env file from .env_sample and configure it with correct values
    ```bash
    cp .env_sample .env
    ```
@@ -98,7 +92,7 @@ The project consists of three main components:
 2. Make sure your .env is correctly configured using .env_sample
 3. Run `python book_to_txt.py {book_path}` to clean and format the book text. You can give the path to the book in the arguments to the python command or as an input. Also, after conversion you can manually edit the converted book for fine-grained control.
 4. *(Optional for multi-voice narration)* Run `python identify_characters_and_output_book_to_jsonl.py` to analyze characters and generate metadata. You'll be prompted for a protagonist's name to properly attribute first-person references.
-5. Run `python generate_audiobook.py` to generate the audiobook. Choose between single-voice or multi-voice narration.
+5. Run `python generate_audiobook.py {book_path}` to generate the audiobook. Choose between single-voice or multi-voice narration. Also, choose the output format (M4B/ MP3/ AAC).
 
 ## Roadmap
 
@@ -106,9 +100,10 @@ Planned future enhancements:
 
 -  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Try different voice combinations using `generate_audio_samples.py` and update the `kokoro_voice_map.json` to use better voices. 
--  ⏳ Add artwork and chapters, and convert audiobooks to M4B format for better compatibility.
 -  ⏳ Add extended pause when chapters end once chapter recognition is in place.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
+-  ✅ Add support for using calibre to extract the text and metadata for better formatting and wider compatibility.
+-  ✅ Add artwork and chapters, and convert audiobooks to M4B format for better compatibility.
 -  ✅ Give option to the user for selecting the audio generation format.
 -  ✅ Use environment variables instead of modifying files directly.
 -  ✅ Update the `generate_audio_with_single_voice()` function's hardcoded progress bar logic and modify it to generate for each line instead of the whole text.

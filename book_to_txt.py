@@ -27,12 +27,24 @@ def extract_text_from_book_using_textract(book_path):
     return text
 
 def extract_text_from_book_using_calibre(book_path):
+    """
+    Extracts text from a book using Calibre's ebook-convert utility.
 
+    Args:
+        book_path (str): The path to the book file.
+
+    Returns:
+        str: The extracted text from the book.
+    """
+    # Command to convert the book into a plain text file using ebook-convert
     command = f"/usr/bin/ebook-convert '{book_path}' extracted_book.txt"
+    
+    # Execute the command without using a virtual environment
     result = run_shell_command_without_virtualenv(command)
 
-    f = open("extracted_book.txt", "r")
-    book_text = f.read()
+    # Open the resulting text file and read its contents
+    with open("extracted_book.txt", "r") as f:
+        book_text = f.read()
 
     return book_text
 
@@ -163,29 +175,9 @@ def normalize_line_breaks(text):
     
     return normalized_text
 
-def fix_unterminated_text(input_text):
-    lines = input_text.split('\n')
-    fixed_lines = []
-    
-    for line in lines:
-        line = line.strip()
-        
-        # If it's a header or all caps, or it contains only numbers, keep it separate
-        if line.isupper() or line.isdigit():
-            fixed_lines.append(line)
-            continue
-        
-        # Merge with the previous line if it doesn't end in punctuation
-        if fixed_lines and not fixed_lines[-1].endswith(('.', '!', '?', '"')): 
-            fixed_lines[-1] += ' ' + line
-        else:
-            fixed_lines.append(line)
-    
-    return '\n'.join(fixed_lines)
-
 def main():
     # Default book path
-    book_path = "./sample_book_and_audio/Adventure of the Lost Treasure, The - Prakhar Sharma.epub"
+    book_path = "./sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.epub"
 
     # Check if a path is provided via command-line arguments
     if len(sys.argv) > 1:
@@ -232,18 +224,6 @@ def main():
     print("✍️ Removing multiple line breaks...\n")
 
     text = normalize_line_breaks(text) # Remove multiple line breaks, normalize it 
-
-    # Ask user if they want to fix unterminated text
-    print("\n🔧 Text Cleaning Options:\n")
-    have_to_fix_unterminated_text = input(
-        "❓ Do you want to fix **unterminated text**? (Optional)\n"
-        "📌 This helps with books that are not formatted properly and have unterminated lines.\n"
-        "➡️ Answer (yes/no). Default is **no**: "
-    ).strip().lower()
-
-    if have_to_fix_unterminated_text == "yes":
-        text = fix_unterminated_text(text)
-        print("✅ Unterminated text has been fixed!\n")
 
     # Fix missing opening/closing quotes in dialogue
     print("\n✍️ Fixing unterminated quotes in dialogue...\n")
