@@ -149,6 +149,8 @@ def run_shell_command(command):
             capture_output=True,
             text=True
         )
+        if(result.stderr):
+            raise Exception(result.stderr)
 
         return result
         
