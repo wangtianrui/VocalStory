@@ -215,8 +215,6 @@ def main():
         print("✅ Using textract to decode the book...\n")
         text: str = extract_text_from_book_using_textract(book_path)
 
-    text: str = extract_text_from_book_using_calibre(book_path)
-
     print("✍️ Normalizing the text by replacing curly quotes and apostrophes with standard ASCII equivalents...\n")
 
     text = text.replace("\u201c", '"').replace("\u201d", '"').replace("\u2019", "'").replace("\u2018", "'") # Normalize text by replacing curly quotes and apostrophes with standard ASCII equivalents
