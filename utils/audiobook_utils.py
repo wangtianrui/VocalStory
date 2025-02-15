@@ -116,11 +116,6 @@ def generate_chapters_file(chapter_files, output_file="chapters.txt"):
         for chapter in chapter_files:
             duration = get_audio_duration_using_ffprobe(os.path.join("temp_audio", chapter))
             end_time = start_time + duration
-
-            print("chapter", chapter)
-            print("duration", duration)
-            print("start_time", start_time)
-            print("end_time", end_time)
             
             # Write the chapter metadata to the file
             f.write("[CHAPTER]\n")
