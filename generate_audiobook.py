@@ -149,7 +149,7 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
             is_chapter_heading = check_if_chapter_heading(line)
             if is_chapter_heading:
                 chapter_index += 1
-                current_chapter_audio = f"{line}.aac"
+                current_chapter_audio = f"{line.replace("'", "").replace('"', '')}.aac"
             
             chapter_path = os.path.join(temp_audio_dir, current_chapter_audio)
 
