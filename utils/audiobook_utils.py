@@ -135,8 +135,17 @@ def create_m4a_file_from_raw_aac_file(input_file_path, output_file_path):
     except Exception as e:
         print(f"Error: {e}")
         return None
+
+def create_aac_file_from_m4a_file(input_file_path, output_file_path):
+    cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c", "copy", output_file_path]
     
-def create_mp3_file_from_raw_aac_file(input_file_path, output_file_path):
+    try:
+        result = subprocess.run(cmd)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def create_mp3_file_from_m4a_file(input_file_path, output_file_path):
     cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c:a", "libmp3lame", "-b:a", "128k", output_file_path]
     
     try:
@@ -145,7 +154,7 @@ def create_mp3_file_from_raw_aac_file(input_file_path, output_file_path):
         print(f"Error: {e}")
         return None
     
-def create_wav_file_from_raw_aac_file(input_file_path, output_file_path):
+def create_wav_file_from_m4a_file(input_file_path, output_file_path):
     cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c:a", "pcm_s16le", "-ar", "44100", output_file_path]
     
     try:
@@ -154,7 +163,7 @@ def create_wav_file_from_raw_aac_file(input_file_path, output_file_path):
         print(f"Error: {e}")
         return None
     
-def create_opus_file_from_raw_aac_file(input_file_path, output_file_path):
+def create_opus_file_from_m4a_file(input_file_path, output_file_path):
     cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c:a", "libopus", "-b:a", "128k", output_file_path]
     
     try:
@@ -163,7 +172,7 @@ def create_opus_file_from_raw_aac_file(input_file_path, output_file_path):
         print(f"Error: {e}")
         return None
     
-def create_flac_file_from_raw_aac_file(input_file_path, output_file_path):
+def create_flac_file_from_m4a_file(input_file_path, output_file_path):
     cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c:a", "flac", output_file_path]
     
     try:
@@ -172,7 +181,7 @@ def create_flac_file_from_raw_aac_file(input_file_path, output_file_path):
         print(f"Error: {e}")
         return None
     
-def create_pcm_file_from_raw_aac_file(input_file_path, output_file_path):
+def create_pcm_file_from_m4a_file(input_file_path, output_file_path):
     cmd = ["ffmpeg", "-y", "-i", input_file_path, "-f", "s16le", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", output_file_path]
     
     try:
@@ -181,25 +190,27 @@ def create_pcm_file_from_raw_aac_file(input_file_path, output_file_path):
         print(f"Error: {e}")
         return None
     
-def convert_audio_file_formats(output_format, folder_path, file_name):
-        input_path = os.path.join(folder_path, f"{file_name}.aac")
+def convert_audio_file_formats(input_format, output_format, folder_path, file_name):
+        input_path = os.path.join(folder_path, f"{file_name}.{input_format}")
         output_path = os.path.join(folder_path, f"{file_name}.{output_format}")
 
         if output_format == "aac":
-            # Already generated
-            pass
+            create_aac_file_from_m4a_file(input_path, output_path)
         elif output_format == "m4a":
-            create_m4a_file_from_raw_aac_file(input_path, output_path)
+            if input_format == "aac":
+                create_m4a_file_from_raw_aac_file(input_path, output_path)
+            elif input_format == "m4a":
+                pass # Already generated
         elif output_format == "mp3":
-            create_mp3_file_from_raw_aac_file(input_path, output_path)
+            create_mp3_file_from_m4a_file(input_path, output_path)
         elif output_format == "wav":
-            create_wav_file_from_raw_aac_file(input_path, output_path)
+            create_wav_file_from_m4a_file(input_path, output_path)
         elif output_format == "opus":
-            create_opus_file_from_raw_aac_file(input_path, output_path)
+            create_opus_file_from_m4a_file(input_path, output_path)
         elif output_format == "flac":
-            create_flac_file_from_raw_aac_file(input_path, output_path)
+            create_flac_file_from_m4a_file(input_path, output_path)
         elif output_format == "pcm":
-            create_pcm_file_from_raw_aac_file(input_path, output_path)
+            create_pcm_file_from_m4a_file(input_path, output_path)
     
 def merge_chapters_to_m4b(book_path, chapter_files):
     """
@@ -280,13 +291,12 @@ def add_silence_to_audio_file_by_reencoding_using_ffmpeg(temp_dir, input_file_na
 
 def merge_chapters_to_standard_audio_file(chapter_files):
     """
-    Uses ffmpeg to merge all chapter files into a standard AAC audio file).
+    Uses ffmpeg to merge all chapter files into a standard M4A audio file).
 
-    This function takes a list of chapter files and an output format as input, and generates a standard AAC audio file.
+    This function takes a list of chapter files and an output format as input, and generates a standard M4A audio file.
 
     Args:
         chapter_files (list): A list of the paths to the individual chapter audio files.
-        output_format (str): The desired output format for the audio file (e.g. aac, mp3).
     """
     file_list_path = "chapter_list.txt"
     
@@ -296,7 +306,7 @@ def merge_chapters_to_standard_audio_file(chapter_files):
             f.write(f"file '{os.path.join('temp_audio', chapter)}'\n")
 
     # Construct the output file path
-    output_file = f"generated_audiobooks/audiobook.aac"
+    output_file = f"generated_audiobooks/audiobook.m4a"
 
     # Construct the ffmpeg command
     ffmpeg_cmd = (

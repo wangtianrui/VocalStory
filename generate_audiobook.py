@@ -184,19 +184,21 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
     for chapter in chapter_files:
         add_silence_to_audio_file_by_appending_pre_generated_silence(temp_audio_dir, chapter)
 
-    if generate_m4b_audiobook_file:
-        m4a_chapter_files = []
-        for chapter in chapter_files:
-            chapter_name = chapter.split('.')[0]
-            m4a_chapter_files.append(f"{chapter_name}.m4a")
-            convert_audio_file_formats("m4a", temp_audio_dir, chapter_name)
+    m4a_chapter_files = []
 
+    for chapter in chapter_files:
+        chapter_name = chapter.split('.')[0]
+        m4a_chapter_files.append(f"{chapter_name}.m4a")
+        # Convert to M4A as raw AAC have problems with timestamps and metadata
+        convert_audio_file_formats("aac", "m4a", temp_audio_dir, chapter_name)
+
+    if generate_m4b_audiobook_file:
         # Merge all chapter files into a final m4b audiobook
         merge_chapters_to_m4b(book_path, m4a_chapter_files)
     else:
-        # Merge all chapter files into a standard aac audiobook
-        merge_chapters_to_standard_audio_file(chapter_files)
-        convert_audio_file_formats(output_format, "generated_audiobooks", "audiobook")
+        # Merge all chapter files into a standard M4A audiobook
+        merge_chapters_to_standard_audio_file(m4a_chapter_files)
+        convert_audio_file_formats("m4a", output_format, "generated_audiobooks", "audiobook")
 
 def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_file=False, book_path=""):
     """
@@ -294,19 +296,21 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
     for chapter in chapter_files:
         add_silence_to_audio_file_by_appending_pre_generated_silence(temp_audio_dir, chapter)
 
-    if generate_m4b_audiobook_file:
-        m4a_chapter_files = []
-        for chapter in chapter_files:
-            chapter_name = chapter.split('.')[0]
-            m4a_chapter_files.append(f"{chapter_name}.m4a")
-            convert_audio_file_formats("m4a", temp_audio_dir, chapter_name)
+    m4a_chapter_files = []
 
+    for chapter in chapter_files:
+        chapter_name = chapter.split('.')[0]
+        m4a_chapter_files.append(f"{chapter_name}.m4a")
+        # Convert to M4A as raw AAC have problems with timestamps and metadata
+        convert_audio_file_formats("aac", "m4a", temp_audio_dir, chapter_name)
+
+    if generate_m4b_audiobook_file:
         # Merge all chapter files into a final m4b audiobook
         merge_chapters_to_m4b(book_path, m4a_chapter_files)
     else:
-        # Merge all chapter files into a standard aac audiobook
-        merge_chapters_to_standard_audio_file(chapter_files)
-        convert_audio_file_formats(output_format, "generated_audiobooks", "audiobook")
+        # Merge all chapter files into a standard M4A audiobook
+        merge_chapters_to_standard_audio_file(m4a_chapter_files)
+        convert_audio_file_formats("m4a", output_format, "generated_audiobooks", "audiobook")
 
 
 def main():

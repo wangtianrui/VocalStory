@@ -48,10 +48,8 @@ The project consists of three main components:
 - `sample_book_and_audio/speaker_attributed_book.jsonl`: The generated speaker-attributed JSONL file.
 - `sample_book_and_audio/character_gender_map.json`: The generated character metadata.
 - `sample_book_and_audio/sample_multi_voice_audiobook.m4b`: The generated sample multi-voice audiobook in M4B format with cover and chapters from the story.
-- `sample_book_and_audio/sample_multi_voice_audio.aac`: The generated sample multi-voice AAC audio file from the story.
-- `sample_book_and_audio/sample_multi_voice_audio.m4a`: The generated sample multi-voice M4A audio file from the story.
 - `sample_book_and_audio/sample_multi_voice_audio.mp3`: The generated sample multi-voice MP3 audio file from the story.
-- `sample_book_and_audio/sample_single_voice_audio.aac`: The generated sample single-voice AAC audio file from the story.
+- `sample_book_and_audio/sample_single_voice_audio.mp3`: The generated sample single-voice MP3 audio file from the story.
 
 ## Installation
 
