@@ -61,5 +61,6 @@ transformers==4.48.3
 typing_extensions==4.12.2
 tzlocal==5.2
 urllib3==2.3.0
+word2number==1.1
 xlrd==1.2.0
 XlsxWriter==3.2.2

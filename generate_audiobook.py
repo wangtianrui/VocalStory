@@ -21,6 +21,7 @@ from tqdm import tqdm
 import json
 import os
 import re
+from word2number import w2n
 import time
 import sys
 from utils.run_shell_commands import check_if_ffmpeg_is_installed, check_if_calibre_is_installed
@@ -53,25 +54,30 @@ def split_and_annotate_text(text):
 
     return annotated_parts
 
-def check_if_chapter_heading(line):
+def check_if_chapter_heading(text):
     """
-    Checks if a line is a chapter heading based on common patterns and returns true or false if it is.
+    Checks if a given text line represents a chapter heading.
 
-    Args:
-        line (str): The line to check.
+    A chapter heading is considered a string that starts with either "Chapter",
+    "Part", or "PART" (case-insensitive) followed by a number (either a digit
+    or a word that can be converted to an integer).
 
-    Returns:
-        bool: A boolean indicating if the line matched the pattern.
+    :param text: The text to check
+    :return: True if the text is a chapter heading, False otherwise
     """
+    pattern = r'^(Chapter|Part|PART)\s+([\w-]+|\d+)'
+    regex = re.compile(pattern, re.IGNORECASE)
+    match = regex.match(text)
 
-    # Patterns for chapter headings
-    pattern = r'^(Chapter|Part)?\s*\d+'
-
-    # Check if the line matches the pattern
-    matched_text = re.match(pattern, line, re.IGNORECASE)
-
-    # Return the chapter heading if matched
-    return bool(matched_text)
+    if match:
+        label, number = match.groups()
+        try:
+            # Try converting the number (either digit or word) to an integer
+            w2n.word_to_num(number) if not number.isdigit() else int(number)
+            return True
+        except ValueError:
+            return False  # Invalid number format
+    return False  # No match
     
 def find_voice_for_gender_score(character: str, character_gender_map, kokoro_voice_map):
     """
