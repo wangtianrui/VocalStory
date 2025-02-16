@@ -251,11 +251,19 @@ def merge_chapters_to_m4b(book_path, chapter_files):
     subprocess.run(ffmpeg_cmd, shell=True, check=True)
     print(f"Audiobook created: {output_m4b}")
 
-def merge_chapters_to_standard_audio_file(chapter_files, output_format):
-    """
-    Uses ffmpeg to merge all chapter files into a standard audio file (ex. aac/ mp3).
+def add_silence_to_audio_file(temp_dir, input_file_name, pause_duration):
+    generate_silence_command = (f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {pause_duration} -c:a aac "{temp_dir}/silence.aac"')
+    subprocess.run(generate_silence_command, shell=True, check=True)
+    add_silence_command = (f'ffmpeg -y -i "{temp_dir}/{input_file_name}" -i "{temp_dir}/silence.aac" -filter_complex "[0:a][1:a]concat=n=2:v=0:a=1[out]" -map "[out]" "{temp_dir}/temp_audio_file.aac"')
+    subprocess.run(add_silence_command, shell=True, check=True)
+    rename_file_command = (f'mv "{temp_dir}/temp_audio_file.aac" "{temp_dir}/{input_file_name}"')
+    subprocess.run(rename_file_command, shell=True, check=True)
 
-    This function takes a list of chapter files and an output format as input, and generates a standard audio file with the specified format.
+def merge_chapters_to_standard_audio_file(chapter_files):
+    """
+    Uses ffmpeg to merge all chapter files into a standard AAC audio file).
+
+    This function takes a list of chapter files and an output format as input, and generates a standard AAC audio file.
 
     Args:
         chapter_files (list): A list of the paths to the individual chapter audio files.
@@ -269,7 +277,7 @@ def merge_chapters_to_standard_audio_file(chapter_files, output_format):
             f.write(f"file '{os.path.join('temp_audio', chapter)}'\n")
 
     # Construct the output file path
-    output_file = f"generated_audiobooks/audiobook.{output_format}"
+    output_file = f"generated_audiobooks/audiobook.aac"
 
     # Construct the ffmpeg command
     ffmpeg_cmd = (

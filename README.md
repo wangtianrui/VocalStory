@@ -106,12 +106,12 @@ Planned future enhancements:
 
 -  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Try different voice combinations using `generate_audio_samples.py` and update the `kokoro_voice_map.json` to use better voices. 
--  ⏳ Add extended pause when chapters end once chapter recognition is in place.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
 -  ✅ Add support for the these output formats: AAC, M4A, MP3, WAV, OPUS, FLAC, PCM, M4B.
 -  ✅ Add support for using calibre to extract the text and metadata for better formatting and wider compatibility.
 -  ✅ Add artwork and chapters, and convert audiobooks to M4B format for better compatibility.
 -  ✅ Give option to the user for selecting the audio generation format.
+-  ✅ Add extended pause when chapters end once chapter recognition is in place.
 -  ✅ Use environment variables instead of modifying files directly.
 -  ✅ Update the `generate_audio_with_single_voice()` function's hardcoded progress bar logic and modify it to generate for each line instead of the whole text.
 -  ✅ Notify the user about the generated output files and the next steps. 
