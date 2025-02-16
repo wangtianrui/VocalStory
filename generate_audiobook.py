@@ -26,7 +26,7 @@ import time
 import sys
 from utils.run_shell_commands import check_if_ffmpeg_is_installed, check_if_calibre_is_installed
 from utils.file_utils import read_json, empty_directory
-from utils.audiobook_utils import merge_chapters_to_m4b, convert_audio_file_formats, add_silence_to_audio_file, merge_chapters_to_standard_audio_file
+from utils.audiobook_utils import merge_chapters_to_m4b, convert_audio_file_formats, add_silence_to_audio_file_by_reencoding_using_ffmpeg, merge_chapters_to_standard_audio_file, add_silence_to_audio_file_by_appending_pre_generated_silence
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -182,7 +182,7 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
             overall_pbar.update(1)
 
     for chapter in chapter_files:
-        add_silence_to_audio_file(temp_audio_dir, chapter, 1.5)
+        add_silence_to_audio_file_by_appending_pre_generated_silence(temp_audio_dir, chapter)
 
     if generate_m4b_audiobook_file:
         m4a_chapter_files = []
@@ -292,7 +292,7 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
             overall_pbar.update(1)
 
     for chapter in chapter_files:
-        add_silence_to_audio_file(temp_audio_dir, chapter, 1.5)
+        add_silence_to_audio_file_by_appending_pre_generated_silence(temp_audio_dir, chapter)
 
     if generate_m4b_audiobook_file:
         m4a_chapter_files = []

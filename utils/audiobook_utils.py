@@ -251,7 +251,13 @@ def merge_chapters_to_m4b(book_path, chapter_files):
     subprocess.run(ffmpeg_cmd, shell=True, check=True)
     print(f"Audiobook created: {output_m4b}")
 
-def add_silence_to_audio_file(temp_dir, input_file_name, pause_duration):
+def add_silence_to_audio_file_by_appending_pre_generated_silence(temp_dir, input_file_name):
+    silence_path = "static_files/silence.aac" # Pre generated 1 seconds of silence using command `ffmpeg -f lavfi -i anullsrc=r=44100:cl=mono -t 1 -c:a aac silence.aac`
+
+    with open(silence_path, "rb") as silence_file, open(f"{temp_dir}/{input_file_name}", "ab") as audio_file:
+        audio_file.write(silence_file.read())  # Append silence to the end of the audio file
+
+def add_silence_to_audio_file_by_reencoding_using_ffmpeg(temp_dir, input_file_name, pause_duration):
     """
     Adds a silence of specified duration at the end of an audio file.
 
