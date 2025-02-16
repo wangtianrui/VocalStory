@@ -252,10 +252,23 @@ def merge_chapters_to_m4b(book_path, chapter_files):
     print(f"Audiobook created: {output_m4b}")
 
 def add_silence_to_audio_file(temp_dir, input_file_name, pause_duration):
+    """
+    Adds a silence of specified duration at the end of an audio file.
+
+    Args:
+        temp_dir (str): The temporary directory to store the silence file.
+        input_file_name (str): The name of the file to add silence to.
+        pause_duration (str): The duration of the silence (e.g. 00:00:05).
+    """
+    # Generate a silence file with the specified duration
     generate_silence_command = (f'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t {pause_duration} -c:a aac "{temp_dir}/silence.aac"')
     subprocess.run(generate_silence_command, shell=True, check=True)
+
+    # Add the silence to the end of the audio file
     add_silence_command = (f'ffmpeg -y -i "{temp_dir}/{input_file_name}" -i "{temp_dir}/silence.aac" -filter_complex "[0:a][1:a]concat=n=2:v=0:a=1[out]" -map "[out]" "{temp_dir}/temp_audio_file.aac"')
     subprocess.run(add_silence_command, shell=True, check=True)
+
+    # Rename the temporary file back to the original file name
     rename_file_command = (f'mv "{temp_dir}/temp_audio_file.aac" "{temp_dir}/{input_file_name}"')
     subprocess.run(rename_file_command, shell=True, check=True)
 
