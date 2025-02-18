@@ -63,7 +63,7 @@ if(gen_for_all_combinations == "yes"):
                 speed=0.85,
                 input=text
             ) as response:
-                file_path = f"audio_samples/{voice.replace('+', '_')}.aac"
+                file_path = f"audio_samples/{voice}.aac"
                 response.stream_to_file(file_path)
             overall_pbar.update(1)
 else:
