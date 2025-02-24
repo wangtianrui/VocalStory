@@ -84,7 +84,10 @@ source ~/.zshrc  # Apply changes
 ```
 7. Install [ffmpeg](https://www.ffmpeg.org/download.html) (Needed for audio output format conversion and if you want to create M4B audiobook)
 8. Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen2.5-14b-instruct-mlx`).
-9. Set up the Kokoro TTS model. Use CUDA-based GPU inference for faster processing or use CPU inference via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI).
+9. Set up the Kokoro TTS model. Use CUDA-based GPU inference for faster processing or use CPU inference via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI). Checkout to the commit id `b00c9ec28df0fd551ae25108a986e04d29a54f2e` as latest versions dont support AAC output. Use the following command inside the repo once you've cloned it and run through the dockerfile:
+```bash
+git checkout b00c9ec28df0fd551ae25108a986e04d29a54f2e
+```
 10. Create a .env file from .env_sample and configure it with correct values
    ```bash
    cp .env_sample .env
