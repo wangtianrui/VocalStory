@@ -172,80 +172,89 @@ def identify_character_gender_and_age_using_llm_and_assign_score(character_name,
               Example: {"name": "John", "age": "adult", "gender": "male", "gender_score": 2}
     """
 
-    # Extract a window of dialogues around the character's line for context
-    character_dialogues = lines[max(0, index - 2):index + 5]
-    text_character_dialogues = "\n".join(character_dialogues)
+    try:
+        # Extract a window of dialogues around the character's line for context
+        character_dialogues = lines[max(0, index - 2):index + 5]
+        text_character_dialogues = "\n".join(character_dialogues)
 
-    # System prompt to guide the LLM in inferring age and gender
-    system_prompt = """
-    You are an expert in analyzing character names and inferring their gender and age based on the character's name and the text excerpt. Take into consideration the character name and the text excerpt and then assign the age and gender accordingly. 
-    For a masculine character return the gender as 'male', for a feminine character return the gender as 'female' and for a character whose gender is neutral/ unknown return gender as 'unknown'. 
-    For assigning the age, if the character is a child return the age as 'child', if the character is an adult return the age as 'adult' and if the character is an elderly return the age as 'elderly'.
-    Return only the gender and age as the output. Dont give any explanation or doubt. 
-    Give the output as a string in the following format:
-    Age: {age}
-    Gender: {gender}"""
+        # System prompt to guide the LLM in inferring age and gender
+        system_prompt = """
+        You are an expert in analyzing character names and inferring their gender and age based on the character's name and the text excerpt. Take into consideration the character name and the text excerpt and then assign the age and gender accordingly. 
+        For a masculine character return the gender as 'male', for a feminine character return the gender as 'female' and for a character whose gender is neutral/ unknown return gender as 'unknown'. 
+        For assigning the age, if the character is a child return the age as 'child', if the character is an adult return the age as 'adult' and if the character is an elderly return the age as 'elderly'.
+        Return only the gender and age as the output. Dont give any explanation or doubt. 
+        Give the output as a string in the following format:
+        Age: {age}
+        Gender: {gender}"""
 
-    # User prompt containing the character name and dialogue context
-    user_prompt = f"""
-    Character Name/ Character Description: {character_name}
+        # User prompt containing the character name and dialogue context
+        user_prompt = f"""
+        Character Name/ Character Description: {character_name}
 
-    Text Excerpt: {text_character_dialogues}
-    """
+        Text Excerpt: {text_character_dialogues}
+        """
 
-    # Query the LLM to infer age and gender
-    response = openai.chat.completions.create(
-        model=model_name,
-        messages=[{"role": "system", "content": system_prompt},
-                  {"role": "user", "content": user_prompt}]
-    )
+        # Query the LLM to infer age and gender
+        response = openai.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}]
+        )
 
-    # Extract and clean the LLM's response
-    age_and_gender = response.choices[0].message.content
-    age_and_gender = age_and_gender.lower().strip()
-    split_text = age_and_gender.split("\n")
-    age_text = split_text[0]
-    gender_text = split_text[1]
+        # Extract and clean the LLM's response
+        age_and_gender = response.choices[0].message.content
+        age_and_gender = age_and_gender.lower().strip()
+        split_text = age_and_gender.split("\n")
+        age_text = split_text[0]
+        gender_text = split_text[1]
 
-    # Parse age and gender from the response
-    age = age_text.split(":")[1].strip()
-    gender = gender_text.split(":")[1].strip()
+        # Parse age and gender from the response
+        age = age_text.split(":")[1].strip()
+        gender = gender_text.split(":")[1].strip()
 
-    # Default to "adult" if age is unknown or neutral
-    if age == "" or age == "unknown" or age == "neutral":
-        age = "adult"
+        # Default to "adult" if age is unknown or neutral
+        if age == "" or age == "unknown" or age == "neutral":
+            age = "adult"
 
-    # Default to "unknown" if gender is unknown or neutral
-    if gender == "" or gender == "unknown" or gender == "neutral":
-        gender = "unknown"
+        # Default to "unknown" if gender is unknown or neutral
+        if gender == "" or gender == "unknown" or gender == "neutral":
+            gender = "unknown"
 
-    # Assign a gender score based on inferred gender and age
-    gender_score = 5  # Default to neutral/unknown
+        # Assign a gender score based on inferred gender and age
+        gender_score = 5  # Default to neutral/unknown
 
-    if gender == "male":
-        if age == "child":
-            gender_score = 4  # Slightly masculine for male children
-        elif age == "adult":
-            gender_score = random.choice([1, 2, 3])  # Mostly to completely masculine for male adults
-        elif age == "elderly":
-            gender_score = random.choice([1, 2])  # Mostly to completely masculine for elderly males
-    elif gender == "female":
-        if age == "child":
-            gender_score = 10  # Completely feminine for female children
-        elif age == "adult":
-            gender_score = random.choice([7, 8, 9])  # Mostly to completely feminine for female adults
-        elif age == "elderly":
-            gender_score = random.choice([6, 7])  # Slightly to moderately feminine for elderly females
+        if gender == "male":
+            if age == "child":
+                gender_score = 4  # Slightly masculine for male children
+            elif age == "adult":
+                gender_score = random.choice([1, 2, 3])  # Mostly to completely masculine for male adults
+            elif age == "elderly":
+                gender_score = random.choice([1, 2])  # Mostly to completely masculine for elderly males
+        elif gender == "female":
+            if age == "child":
+                gender_score = 10  # Completely feminine for female children
+            elif age == "adult":
+                gender_score = random.choice([7, 8, 9])  # Mostly to completely feminine for female adults
+            elif age == "elderly":
+                gender_score = random.choice([6, 7])  # Slightly to moderately feminine for elderly females
 
-    # Compile character information into a dictionary
-    character_info = {
-        "name": character_name,
-        "age": age,
-        "gender": gender,
-        "gender_score": gender_score
-    }
-
-    return character_info
+        # Compile character information into a dictionary
+        character_info = {
+            "name": character_name,
+            "age": age,
+            "gender": gender,
+            "gender_score": gender_score
+        }
+        return character_info
+    except Exception as e:
+        print(f"Error: {e}. Defaulting to 'adult' age and 'unknown' gender in response.")
+        character_info = {
+            "name": character_name,
+            "age": "adult",
+            "gender": "unknown",
+            "gender_score": 5
+        }
+        return character_info
 
 def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
     """
