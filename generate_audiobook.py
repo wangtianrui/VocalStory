@@ -27,6 +27,7 @@ import sys
 from utils.run_shell_commands import check_if_ffmpeg_is_installed, check_if_calibre_is_installed
 from utils.file_utils import read_json, empty_directory
 from utils.audiobook_utils import merge_chapters_to_m4b, convert_audio_file_formats, add_silence_to_audio_file_by_reencoding_using_ffmpeg, merge_chapters_to_standard_audio_file, add_silence_to_audio_file_by_appending_pre_generated_silence
+from utils.check_if_kokoro_api_is_up import check_if_kokoro_api_is_up
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -36,7 +37,7 @@ KOKORO_API_KEY = os.environ.get("KOKORO_API_KEY")
 
 os.makedirs("audio_samples", exist_ok=True)
 
-client = OpenAI(
+openai_client = OpenAI(
     base_url=KOKORO_BASE_URL, api_key=KOKORO_API_KEY
 )
 
@@ -140,7 +141,7 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
 
     # Create a progress bar
     with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
-        for line in lines:
+        for current_index, line in enumerate(lines):
             line = line.strip()
             if not line:
                 continue
@@ -166,7 +167,7 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
                         voice_to_speak_in = dialogue_voice
 
                     # Generate audio for the line using the TTS service
-                    with client.audio.speech.with_streaming_response.create(
+                    with openai_client.audio.speech.with_streaming_response.create(
                         model="kokoro",
                         voice=voice_to_speak_in,
                         response_format="aac",
@@ -180,6 +181,7 @@ def generate_audio_with_single_voice(output_format, generate_m4b_audiobook_file=
             if current_chapter_audio not in chapter_files:
                 chapter_files.append(current_chapter_audio)
             overall_pbar.update(1)
+            yield f"Generating audiobook. Progress: {current_index + 1}/{total_size} ({(current_index + 1) * 100 // total_size}%)"
 
     for chapter in chapter_files:
         add_silence_to_audio_file_by_appending_pre_generated_silence(temp_audio_dir, chapter)
@@ -248,7 +250,7 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
     
     # Initialize a progress bar to track the audio generation process
     with tqdm(total=total_size, unit="line", desc="Audio Generation Progress") as overall_pbar:
-        for doc in json_data_array:
+        for current_index,doc in enumerate(json_data_array):
             # Extract the line of text and the speaker from the JSON object
             line = doc["line"].strip()
 
@@ -278,7 +280,7 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
                     voice_to_speak_in = narrator_voice if part["type"] == "narration" else speaker_voice
 
                     # Generate audio for the line using the TTS service
-                    with client.audio.speech.with_streaming_response.create(
+                    with openai_client.audio.speech.with_streaming_response.create(
                         model="kokoro",
                         voice=voice_to_speak_in,
                         response_format="aac",
@@ -292,6 +294,7 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
             if current_chapter_audio not in chapter_files:
                 chapter_files.append(current_chapter_audio)
             overall_pbar.update(1)
+            yield f"Generating audiobook. Progress: {current_index + 1}/{total_size} ({(current_index + 1) * 100 // total_size}%)"
 
     for chapter in chapter_files:
         add_silence_to_audio_file_by_appending_pre_generated_silence(temp_audio_dir, chapter)
@@ -312,6 +315,29 @@ def generate_audio_with_multiple_voices(output_format, generate_m4b_audiobook_fi
         merge_chapters_to_standard_audio_file(m4a_chapter_files)
         convert_audio_file_formats("m4a", output_format, "generated_audiobooks", "audiobook")
 
+def process_audiobook_generation(voice_option, output_format, book_path):
+    is_kokoro_api_up, message = check_if_kokoro_api_is_up(openai_client)
+
+    if not is_kokoro_api_up:
+        raise Exception(message)
+
+    generate_m4b_audiobook_file = False
+
+    if output_format == "M4B (Chapters & Cover)":
+        generate_m4b_audiobook_file = True
+
+    if voice_option == "Single Voice":
+        yield "\n🎧 Generating audiobook with a **single voice**..."
+        time.sleep(1)
+        for line in generate_audio_with_single_voice(output_format.lower(), generate_m4b_audiobook_file, book_path):
+            yield line
+    elif voice_option == "Multi-Voice":
+        yield "\n🎭 Generating audiobook with **multiple voices**..."
+        time.sleep(1)
+        for line in generate_audio_with_multiple_voices(output_format.lower(), generate_m4b_audiobook_file, book_path):
+            yield line
+
+    yield f"\n🎧 Audiobook is generated ! The audiobook is saved as **audiobook.{"m4b" if generate_m4b_audiobook_file else output_format}** in the **generated_audiobooks** directory in the current folder."
 
 def main():
     os.makedirs("generated_audiobooks", exist_ok=True)

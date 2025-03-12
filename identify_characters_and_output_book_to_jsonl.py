@@ -28,6 +28,8 @@ import torch
 from gliner import GLiNER
 import warnings
 from utils.file_utils import write_jsons_to_jsonl_file, empty_file, write_json_to_file
+from utils.find_book_protagonist import find_book_protagonist
+from utils.check_if_llm_is_up import check_if_llm_is_up
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -38,7 +40,7 @@ OPENAI_MODEL_NAME=os.environ.get("OPENAI_MODEL_NAME")
 
 warnings.simplefilter("ignore")
 
-openai = OpenAI(base_url=OPENAI_BASE_URL, api_key=OPENAI_API_KEY)
+openai_client = OpenAI(base_url=OPENAI_BASE_URL, api_key=OPENAI_API_KEY)
 model_name = OPENAI_MODEL_NAME
 gliner_model = GLiNER.from_pretrained("urchade/gliner_large-v2.1")
 
@@ -195,7 +197,7 @@ def identify_character_gender_and_age_using_llm_and_assign_score(character_name,
         """
 
         # Query the LLM to infer age and gender
-        response = openai.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model=model_name,
             messages=[{"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}]
@@ -278,6 +280,8 @@ def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
     # Clear the output JSONL file
     empty_file("speaker_attributed_book.jsonl")
 
+    yield("Identifying Characters. Progress 0%")
+
     # Initialize a set to track known characters
     known_characters = set()
 
@@ -348,6 +352,7 @@ def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
 
                 # Update the progress bar
                 overall_pbar.update(1)
+                yield f"Identifying Characters. Progress: {index + 1}/{len(lines)} ({(index + 1) * 100 // len(lines)}%)"
 
             except Exception as e:
                 # Handle errors and log them
@@ -359,6 +364,24 @@ def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
 
     # Write the character gender and age scores to a JSON file
     write_json_to_file(character_gender_map, "character_gender_map.json")
+
+    yield "Character Identification Completed. You can now move onto the next step (Audiobook generation)."
+
+def process_book_and_identify_characters(book_name):
+    is_llm_up, message = check_if_llm_is_up(openai_client, model_name)
+
+    if not is_llm_up:
+        raise Exception(message)
+
+    yield "Finding protagonist. Please wait..."
+    protagonist = find_book_protagonist(book_name, openai_client, model_name)
+    f = open("converted_book.txt", "r")
+    book_text = f.read()
+    yield f"Found protagonist: {protagonist}"
+    time.sleep(1)
+
+    for update in identify_characters_and_output_book_to_jsonl(book_text, protagonist):
+        yield update
 
 def main():
     f = open("converted_book.txt", "r")

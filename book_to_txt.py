@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
 import sys
+import time
 import textract
 from utils.run_shell_commands import run_shell_command, check_if_calibre_is_installed
 
@@ -177,6 +178,28 @@ def normalize_line_breaks(text):
     normalized_text = '\n'.join(non_empty_lines)
     
     return normalized_text
+
+def save_book(edited_text):
+    with open("converted_book.txt", "w", encoding="utf-8") as fout:
+        fout.write(edited_text)
+    return "📖 Book saved successfully as 'converted_book.txt'! You can now proceed to the next optional step (Identifying Characters) or move onto Audiobook generation"
+
+def process_book_and_extract_text(
+    book_path: str,
+    text_decoding_option: str = "textract"
+):
+    if text_decoding_option == "calibre":
+        text: str = extract_text_from_book_using_calibre(book_path)
+    else:
+        text: str = extract_text_from_book_using_textract(book_path)
+
+    text = text.replace("\u201c", '"').replace("\u201d", '"').replace("\u2019", "'").replace("\u2018", "'")
+    text = normalize_line_breaks(text)
+    text = fix_unterminated_quotes(text)
+
+    with open("converted_book.txt", 'w', encoding='utf-8') as fout:
+        fout.write(text)
+        yield text
 
 def main():
     # Default book path

@@ -6,7 +6,10 @@ Audiobook Creator is an open-source project designed to convert books in various
 
 Sample multi voice audio for a short story : https://audio.com/prakhar-sharma/audio/generated-sample-multi-voice-audiobook
 
-The project consists of three main components:
+
+
+<details>
+  <summary>The project consists of three main components:</summary>
 
 1. **Text Cleaning and Formatting (`book_to_txt.py`)**:
    - Extracts and cleans text from a book file (e.g., `book.epub`).
@@ -27,9 +30,11 @@ The project consists of three main components:
      - **Single-Voice**: Uses a single voice for narration and another voice for dialogues for the entire book.
      - **Multi-Voice**: Assigns different voices to characters based on their gender scores.
    - Saves the audiobook in the selected output format to `generated_audiobooks/audiobook.{output_format}`.
+</details>
 
 ## Key Features
 
+- **Gradio UI App**: Create audiobooks easily with an easy to use, intuitive UI made with Gradio.
 - **M4B Audiobook Creation**: Creates compatible audiobooks with covers, metadata, chapter timestamps etc. in M4B format.
 - **Multi-Format Input Support**: Converts books from various formats (EPUB, PDF, etc.) into plain text.
 - **Multi-Format Output Support**: Supports various output formats: AAC, M4A, MP3, WAV, OPUS, FLAC, PCM, M4B.
@@ -41,6 +46,9 @@ The project consists of three main components:
 
 ## Sample Text and Audio
 
+<details>
+  <summary>Expand</summary>
+
 - `sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.epub`: A sample short story in epub format as a starting point.
 - `sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.pdf`: A sample short story in pdf format as a starting point.
 - `sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.txt`: A sample short story in txt format as a starting point.
@@ -50,6 +58,7 @@ The project consists of three main components:
 - `sample_book_and_audio/sample_multi_voice_audiobook.m4b`: The generated sample multi-voice audiobook in M4B format with cover and chapters from the story.
 - `sample_book_and_audio/sample_multi_voice_audio.mp3`: The generated sample multi-voice MP3 audio file from the story.
 - `sample_book_and_audio/sample_single_voice_audio.mp3`: The generated sample single-voice MP3 audio file from the story.
+</details>
 
 ## Installation
 
@@ -95,18 +104,32 @@ git checkout b00c9ec28df0fd551ae25108a986e04d29a54f2e
 
 ## Usage
 
-1. Activate the virtual environment.
-2. Make sure your .env is correctly configured using .env_sample
-3. Run `python book_to_txt.py {book_path}` to clean and format the book text. You can give the path to the book in the arguments to the python command or as an input. Also, after conversion you can manually edit the converted book for fine-grained control.
-4. *(Optional for multi-voice narration)* Run `python identify_characters_and_output_book_to_jsonl.py` to analyze characters and generate metadata. You'll be prompted for a protagonist's name to properly attribute first-person references.
-5. Run `python generate_audiobook.py {book_path}` to generate the audiobook. Choose between single-voice or multi-voice narration. Also, choose the output format audiobook/ audio file.
+<details>
+  <summary>Run through Gradio UI (recommended)</summary>
+
+   1. Activate the virtual environment.
+   2. Make sure your .env is correctly configured using .env_sample
+   3. Run `python app.py` to run the Gradio app. After the app has started, navigate to `http://127.0.0.1:7860` in the browser.
+</details>
+
+<details>
+  <summary>Run through scripts</summary>
+
+   1. Activate the virtual environment.
+   2. Make sure your .env is correctly configured using .env_sample
+   3. Run `python book_to_txt.py {book_path}` to clean and format the book text. You can give the path to the book in the arguments to the python command or as an input. Also, after conversion you can manually edit the converted book for fine-grained control.
+   4. *(Optional for multi-voice narration)* Run `python identify_characters_and_output_book_to_jsonl.py` to analyze characters and generate metadata. You'll be prompted for a protagonist's name to properly attribute first-person references.
+   5. Run `python generate_audiobook.py {book_path}` to generate the audiobook. Choose between single-voice or multi-voice narration. Also, choose the output format audiobook/ audio file.
+</details>
 
 ## Roadmap
 
 Planned future enhancements:
 
+-  ⏳ Add support for running the app through docker.
 -  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
+-  ✅ Create UI using Gradio.
 -  ✅ Try different voice combinations using `generate_audio_samples.py` and update the `kokoro_voice_map.json` to use better voices. 
 -  ✅ Add support for the these output formats: AAC, M4A, MP3, WAV, OPUS, FLAC, PCM, M4B.
 -  ✅ Add support for using calibre to extract the text and metadata for better formatting and wider compatibility.
