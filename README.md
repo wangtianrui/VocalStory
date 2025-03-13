@@ -109,7 +109,7 @@ git checkout b00c9ec28df0fd551ae25108a986e04d29a54f2e
 
    1. Activate the virtual environment.
    2. Make sure your .env is correctly configured using .env_sample
-   3. Run `python app.py` to run the Gradio app. After the app has started, navigate to `http://127.0.0.1:7860` in the browser.
+   3. Run `uvicorn app:app --host 0.0.0.0 --port 7860` to run the Gradio app. After the app has started, navigate to `http://127.0.0.1:7860` in the browser.
 </details>
 
 <details>

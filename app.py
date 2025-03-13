@@ -1,5 +1,6 @@
 import gradio as gr
 import os
+from fastapi import FastAPI
 from book_to_txt import process_book_and_extract_text, save_book
 from identify_characters_and_output_book_to_jsonl import process_book_and_identify_characters
 from generate_audiobook import process_audiobook_generation
@@ -7,6 +8,8 @@ from generate_audiobook import process_audiobook_generation
 css = """
 .step-heading {font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem}
 """
+
+app = FastAPI()
 
 def validate_book_upload(book_file, book_title):
     """Validate book upload and return a notification"""
@@ -100,7 +103,7 @@ def generate_audiobook_wrapper(voice_type, output_format, book_file, book_title)
         yield None
         return gr.Warning(f"Error generating audiobook: {str(e)}")
 
-with gr.Blocks(css=css, theme=gr.themes.Default()) as app:
+with gr.Blocks(css=css, theme=gr.themes.Default()) as gradio_app:
     gr.Markdown("# 📖 Audiobook Creator")
     gr.Markdown("Create professional audiobooks from your ebooks in just a few steps.")
     
@@ -232,5 +235,8 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as app:
         queue=True
     )
 
+app = gr.mount_gradio_app(app, gradio_app, path="/")  # Mount Gradio at root
+
 if __name__ == "__main__":
-    app.launch()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7860)
