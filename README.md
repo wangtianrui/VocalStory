@@ -86,18 +86,22 @@ Sample multi voice audio for a short story : https://audio.com/prakhar-sharma/au
    ```bash
    pip install -r requirements_gpu.txt
    ```
-6. Install [calibre](https://calibre-ebook.com/download) (Optional dependency, needed if you need better text decoding capabilities, wider compatibility and want to create M4B audiobook). Also make sure that calibre is present in your PATH. For MacOS, do the following to add it to the PATH:
-```bash
-echo 'export PATH="/Applications/calibre.app/Contents/MacOS:$PATH"' >> ~/.zshrc
-source ~/.zshrc  # Apply changes
-```
-7. Install [ffmpeg](https://www.ffmpeg.org/download.html) (Needed for audio output format conversion and if you want to create M4B audiobook)
-8. Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen2.5-14b-instruct-mlx`).
-9. Set up the Kokoro TTS model. Use CUDA-based GPU inference for faster processing or use CPU inference via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI). Checkout to the commit id `b00c9ec28df0fd551ae25108a986e04d29a54f2e` as latest versions dont support AAC output. Use the following command inside the repo once you've cloned it and run through the dockerfile:
-```bash
-git checkout b00c9ec28df0fd551ae25108a986e04d29a54f2e
-```
-10. Create a .env file from .env_sample and configure it with correct values
+6. Upgrade version of six to avoid errors:
+   ```bash
+   pip install --upgrade six==1.17.0
+   ```
+7. Install [calibre](https://calibre-ebook.com/download) (Optional dependency, needed if you need better text decoding capabilities, wider compatibility and want to create M4B audiobook). Also make sure that calibre is present in your PATH. For MacOS, do the following to add it to the PATH:
+   ```bash
+   echo 'export PATH="/Applications/calibre.app/Contents/MacOS:$PATH"' >> ~/.zshrc
+   source ~/.zshrc  # Apply changes
+   ```
+8. Install [ffmpeg](https://www.ffmpeg.org/download.html) (Needed for audio output format conversion and if you want to create M4B audiobook)
+9. Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen2.5-14b-instruct-mlx`).
+10. Set up the Kokoro TTS model. Use CUDA-based GPU inference for faster processing or use CPU inference via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI). Checkout to the commit id `b00c9ec28df0fd551ae25108a986e04d29a54f2e` as latest versions dont support AAC output. Use the following command inside the repo once you've cloned it and run through the dockerfile:
+   ```bash
+   git checkout b00c9ec28df0fd551ae25108a986e04d29a54f2e
+   ```
+11. Create a .env file from .env_sample and configure it with correct values
    ```bash
    cp .env_sample .env
    ```
