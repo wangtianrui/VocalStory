@@ -1,3 +1,5 @@
+import traceback
+
 def check_if_kokoro_api_is_up(client):
     try:
         with client.audio.speech.with_streaming_response.create(
@@ -9,4 +11,5 @@ def check_if_kokoro_api_is_up(client):
         ) as response:
             return True, None
     except Exception as e:
+        traceback.print_exc()
         return False, "The Kokoro API is not working. Please check if the .env file is correctly set up and the Kokoro API is up. Error: " + str(e)

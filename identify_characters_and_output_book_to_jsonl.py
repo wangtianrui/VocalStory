@@ -31,6 +31,30 @@ from utils.file_utils import write_jsons_to_jsonl_file, empty_file, write_json_t
 from utils.find_book_protagonist import find_book_protagonist
 from utils.check_if_llm_is_up import check_if_llm_is_up
 from dotenv import load_dotenv
+from huggingface_hub import snapshot_download
+
+def download_with_progress(model_name):
+    print(f"Starting download of {model_name}")
+    
+    # Define cache directory
+    cache_dir = os.path.join(os.getcwd(), "model_cache")
+    os.makedirs(cache_dir, exist_ok=True)
+    
+    # Log progress manually since tqdm might not work in Docker
+    print("Download in progress - this may take several minutes...")
+    
+    # Download without tqdm
+    snapshot_download(
+        repo_id=model_name,
+        cache_dir=cache_dir,
+        local_files_only=False,
+        local_dir=cache_dir
+    )
+    
+    print(f"Download complete for {model_name}")
+    
+    # Load the model from cache
+    return GLiNER.from_pretrained(model_name, cache_dir=cache_dir)
 
 load_dotenv()
 
@@ -40,11 +64,13 @@ OPENAI_MODEL_NAME=os.environ.get("OPENAI_MODEL_NAME")
 
 warnings.simplefilter("ignore")
 
+print("\n🚀 **Downloading the GLiNER Model ...**")
+
 openai_client = OpenAI(base_url=OPENAI_BASE_URL, api_key=OPENAI_API_KEY)
 model_name = OPENAI_MODEL_NAME
-gliner_model = GLiNER.from_pretrained("urchade/gliner_large-v2.1")
+gliner_model = download_with_progress("urchade/gliner_large-v2.1")
 
-print("\n🚀 **Model Backend Selection**")
+print("\n🚀 **GLiNER Model Backend Selection**")
 
 if torch.cuda.is_available():
     print("🟢 Using **CUDA** backend (NVIDIA GPU detected)")
