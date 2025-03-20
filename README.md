@@ -7,6 +7,7 @@ Audiobook Creator is an open-source project designed to convert books in various
 Sample multi voice audio for a short story : https://audio.com/prakhar-sharma/audio/generated-sample-multi-voice-audiobook
 
 Watch the demo video:
+
 [![Watch the demo video](https://img.youtube.com/vi/E5lUQoBjquo/maxresdefault.jpg)](https://www.youtube.com/watch?v=E5lUQoBjquo)
 
 <details>
