@@ -78,29 +78,37 @@ def identify_characters_wrapper(book_title):
 def generate_audiobook_wrapper(voice_type, output_format, book_file, book_title):
     """Wrapper for audiobook generation with validation and progress updates"""
     if book_file is None:
-        yield None
+        yield None, None
         return gr.Warning("Please upload a book file first.")
     
     if not book_title:
-        yield None
+        yield None, None
         return gr.Warning("Please enter a book title first.")
     
     if not voice_type or not output_format:
-        yield None
+        yield None, None
         return gr.Warning("Please select voice type and output format.")
     
     try:
         last_output = None
+        audiobook_path = None
         # Pass through all yield values from the original function
         for output in process_audiobook_generation(voice_type, output_format, book_file):
             last_output = output
-            yield output  # Yield each progress update
+            yield output, None  # Yield each progress update without file path
         
-        # Final yield with success notification
-        yield last_output
-        return gr.Info(f"Audiobook generated successfully in {output_format} format!", duration=10)
+        # Get the correct file extension based on the output format
+        generate_m4b_audiobook_file = True if output_format == "M4B (Chapters & Cover)" else False
+        file_extension = "m4b" if generate_m4b_audiobook_file else output_format.lower()
+        
+        # Set the audiobook file path according to the provided information
+        audiobook_path = os.path.join("generated_audiobooks", f"audiobook.{file_extension}")
+        
+        # Final yield with success notification and file path
+        yield last_output, audiobook_path
+        return gr.Info(f"Audiobook generated successfully in {output_format} format! You can now download it in the Download section. Click on the blue download link next to the file name.", duration=10)
     except Exception as e:
-        yield None
+        yield None, None
         return gr.Warning(f"Error generating audiobook: {str(e)}")
 
 with gr.Blocks(css=css, theme=gr.themes.Default()) as gradio_app:
@@ -199,6 +207,15 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as gradio_app:
                 interactive=False,
                 lines=3
             )
+            
+            # Add a new File component for downloading the audiobook
+            with gr.Group(visible=False) as download_box:
+                gr.Markdown("### 📥 Download Your Audiobook")
+                audiobook_file = gr.File(
+                    label="Download Generated Audiobook",
+                    interactive=False,
+                    type="filepath"
+                )
     
     # Connections with proper handling of Gradio notifications
     validate_btn.click(
@@ -228,11 +245,17 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as gradio_app:
         queue=True
     )
     
+    # Update the generate_audiobook_wrapper to output both progress text and file path
     generate_btn.click(
         generate_audiobook_wrapper, 
         inputs=[voice_type, output_format, book_input, book_title], 
-        outputs=[audio_output],
+        outputs=[audio_output, audiobook_file],
         queue=True
+    ).then(
+        # Make the download box visible after generation completes successfully
+        lambda x: gr.update(visible=True) if x is not None else gr.update(visible=False),
+        inputs=[audiobook_file],
+        outputs=[download_box]
     )
 
 app = gr.mount_gradio_app(app, gradio_app, path="/")  # Mount Gradio at root

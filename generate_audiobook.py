@@ -337,7 +337,7 @@ def process_audiobook_generation(voice_option, output_format, book_path):
         for line in generate_audio_with_multiple_voices(output_format.lower(), generate_m4b_audiobook_file, book_path):
             yield line
 
-    yield f"\n🎧 Audiobook is generated ! The audiobook is saved as **audiobook.{"m4b" if generate_m4b_audiobook_file else output_format}** in the **generated_audiobooks** directory in the current folder."
+    yield f"\n🎧 Audiobook is generated ! You can now download it in the Download section below. Click on the blue download link next to the file name."
 
 def main():
     os.makedirs("generated_audiobooks", exist_ok=True)
