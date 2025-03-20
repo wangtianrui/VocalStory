@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  audiobook_creator:
+    build:
+      context: ../..
+      dockerfile: docker/gpu/Dockerfile
+    container_name: audiobook_creator
+    volumes:
+      - ../..:/app
+      - ../../model_cache:/app/model_cache
+    depends_on:
+      - kokoro_fastapi
+    env_file:
+      - ../../.env
+    restart: always
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  kokoro_fastapi:
+    image: ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.2
+    container_name: kokoro_service
+    restart: always
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
