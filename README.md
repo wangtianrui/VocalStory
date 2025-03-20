@@ -6,10 +6,8 @@ Audiobook Creator is an open-source project designed to convert books in various
 
 Sample multi voice audio for a short story : https://audio.com/prakhar-sharma/audio/generated-sample-multi-voice-audiobook
 
-
-
 <details>
-  <summary>The project consists of three main components:</summary>
+<summary>The project consists of three main components:</summary>
 
 1. **Text Cleaning and Formatting (`book_to_txt.py`)**:
    - Extracts and cleans text from a book file (e.g., `book.epub`).
@@ -38,6 +36,7 @@ Sample multi voice audio for a short story : https://audio.com/prakhar-sharma/au
 - **M4B Audiobook Creation**: Creates compatible audiobooks with covers, metadata, chapter timestamps etc. in M4B format.
 - **Multi-Format Input Support**: Converts books from various formats (EPUB, PDF, etc.) into plain text.
 - **Multi-Format Output Support**: Supports various output formats: AAC, M4A, MP3, WAV, OPUS, FLAC, PCM, M4B.
+- **Docker Support**: Use pre-built docker images/ build using docker compose to save time and for a smooth user experience. 
 - **Text Cleaning**: Ensures the book text is well-formatted and readable.
 - **Character Identification**: Identifies characters and infers their attributes (gender, age) using advanced NLP techniques.
 - **Customizable Audiobook Narration**: Supports single-voice or multi-voice narration for enhanced listening experiences.
@@ -47,7 +46,7 @@ Sample multi voice audio for a short story : https://audio.com/prakhar-sharma/au
 ## Sample Text and Audio
 
 <details>
-  <summary>Expand</summary>
+<summary>Expand</summary>
 
 - `sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.epub`: A sample short story in epub format as a starting point.
 - `sample_book_and_audio/The Adventure of the Lost Treasure - Prakhar Sharma.pdf`: A sample short story in pdf format as a starting point.
@@ -60,79 +59,159 @@ Sample multi voice audio for a short story : https://audio.com/prakhar-sharma/au
 - `sample_book_and_audio/sample_single_voice_audio.mp3`: The generated sample single-voice MP3 audio file from the story.
 </details>
 
-## Installation
+## Get Started
 
-1. Clone the repository:
+### Initial Setup
+- Install [Docker](https://www.docker.com/products/docker-desktop/)
+- Make sure host networking is enabled in your docker setup : https://docs.docker.com/engine/network/drivers/host/. Host networking is currently supported in Linux and in docker desktop. To use with [docker desktop, follow these steps](https://docs.docker.com/engine/network/drivers/host/#docker-desktop)
+- Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `phi-4`).
+- Set up the Kokoro TTS model via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI). To get started, run the docker image using the following command:
+
+   For CUDA based GPU inference (Apple Silicon GPUs currently not supported, use CPU based inference instead)
+
    ```bash
-   git clone https://github.com/prakharsr/audiobook-creator.git
-   cd audiobook-creator
+  docker run \
+    --name kokoro_service \
+    --restart always \
+    --network host \
+    --gpus all \
+    ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.2
    ```
-2. Create a virtual environment with Python 3.12:
+
+   For CPU based inference
+
    ```bash
-   virtualenv --python="python3.12" .venv
+  docker run \
+    --name kokoro_service \
+    --restart always \
+    --network host \
+    ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2
    ```
-3. Activate the virtual environment:
-   ```bash
-   source .venv/bin/activate
-   ```
-4. Install Pip 24.0:
-   ```bash
-   pip install pip==24.0
-   ```
-5. Install dependencies (choose CPU or GPU version):
-   ```bash
-   pip install -r requirements_cpu.txt
-   ```
-   ```bash
-   pip install -r requirements_gpu.txt
-   ```
-6. Upgrade version of six to avoid errors:
-   ```bash
-   pip install --upgrade six==1.17.0
-   ```
-7. Install [calibre](https://calibre-ebook.com/download) (Optional dependency, needed if you need better text decoding capabilities, wider compatibility and want to create M4B audiobook). Also make sure that calibre is present in your PATH. For MacOS, do the following to add it to the PATH:
-   ```bash
-   echo 'export PATH="/Applications/calibre.app/Contents/MacOS:$PATH"' >> ~/.zshrc
-   source ~/.zshrc  # Apply changes
-   ```
-8. Install [ffmpeg](https://www.ffmpeg.org/download.html) (Needed for audio output format conversion and if you want to create M4B audiobook)
-9. Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen2.5-14b-instruct-mlx`).
-10. Set up the Kokoro TTS model. Use CUDA-based GPU inference for faster processing or use CPU inference via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI). Checkout to the commit id `b00c9ec28df0fd551ae25108a986e04d29a54f2e` as latest versions dont support AAC output. Use the following command inside the repo once you've cloned it and run through the dockerfile:
-   ```bash
-   git checkout b00c9ec28df0fd551ae25108a986e04d29a54f2e
-   ```
-11. Create a .env file from .env_sample and configure it with correct values
+- Create a .env file from .env_sample and configure it with the correct values. Make sure you follow the instructions mentioned at the top of .env_sample to avoid errors.
    ```bash
    cp .env_sample .env
    ```
+- After this, choose between the below options for the next step to run the audiobook creator app: 
 
-## Usage
+   <details>
+   <summary>Quickest Start (docker run)</summary>
 
-<details>
-  <summary>Run through Gradio UI (recommended)</summary>
+   - Make sure your .env is configured correctly and your LLM and Kokoro FastAPI are running. In the same folder where .env is present, run the below command
+   - Choose between the types of inference:
+   
+      For CUDA based GPU inference (Apple Silicon GPUs currently not supported, use CPU based inference instead)
 
-   1. Activate the virtual environment.
-   2. Make sure your .env is correctly configured using .env_sample
-   3. Run `uvicorn app:app --host 0.0.0.0 --port 7860` to run the Gradio app. After the app has started, navigate to `http://127.0.0.1:7860` in the browser.
-</details>
+      ```bash
+      docker run \
+         --name audiobook_creator \
+         --restart always \
+         --network host \
+         --gpus all \
+         --env-file .env \
+         -v model_cache:/app/model_cache \
+         docker.io/prakharsr/audiobook_creator_gpu:v1.0
+      ```
 
-<details>
-  <summary>Run through scripts</summary>
+      For CPU based inference
 
-   1. Activate the virtual environment.
-   2. Make sure your .env is correctly configured using .env_sample
-   3. Run `python book_to_txt.py {book_path}` to clean and format the book text. You can give the path to the book in the arguments to the python command or as an input. Also, after conversion you can manually edit the converted book for fine-grained control.
-   4. *(Optional for multi-voice narration)* Run `python identify_characters_and_output_book_to_jsonl.py` to analyze characters and generate metadata. You'll be prompted for a protagonist's name to properly attribute first-person references.
-   5. Run `python generate_audiobook.py {book_path}` to generate the audiobook. Choose between single-voice or multi-voice narration. Also, choose the output format audiobook/ audio file.
-</details>
+      ```bash
+      docker run \
+         --name audiobook_creator \
+         --restart always \
+         --network host \
+         --env-file .env \
+         -v model_cache:/app/model_cache \
+         docker.io/prakharsr/audiobook_creator_cpu:v1.0
+      ```
+   - Wait for the models to download and then navigate to http://localhost:7860 for the Gradio UI
+   </details>
+
+   <details>
+   <summary>Quick Start (docker compose)</summary>
+
+   - Clone the repository
+      ```bash 
+      git clone https://github.com/prakharsr/audiobook-creator.git
+
+      cd audiobook-creator
+      ```
+   - Make sure your .env is configured correctly and your LLM is running
+   - If Kokoro docker container is already running, you can either stop and remove it or comment the kokoro_fastapi service in docker compose. If its not running then it will automatically start when you run docker compose up command
+   - Copy the .env file into the audiobook-creator folder
+   - Choose between the types of inference:
+   
+      For CUDA based GPU inference (Apple Silicon GPUs currently not supported, use CPU based inference instead)
+
+      ```bash
+      cd docker/gpu
+
+      docker compose up --build
+      ```
+
+      For CPU based inference
+
+      ```bash
+      cd docker/cpu
+
+      docker compose up --build
+      ```
+   - Wait for the models to download and then navigate to http://localhost:7860 for the Gradio UI
+   </details>
+
+   <details>
+   <summary>Direct run (via uv)</summary>
+
+   1. Clone the repository
+      ```bash 
+      git clone https://github.com/prakharsr/audiobook-creator.git
+
+      cd audiobook-creator
+      ```
+   2. Make sure your .env is configured correctly and your LLM and Kokoro FastAPI are running
+   3. Copy the .env file into the audiobook-creator folder
+   4. Install uv 
+      ```bash
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      ```
+   5. Create a virtual environment with Python 3.12:
+      ```bash
+      uv venv --python 3.12
+      ```
+   5. Activate the virtual environment:
+      ```bash
+      source .venv/bin/activate
+      ```
+   6. Install Pip 24.0:
+      ```bash
+      uv pip install pip==24.0
+      ```
+   7. Install dependencies (choose CPU or GPU version):
+      ```bash
+      uv pip install -r requirements_cpu.txt
+      ```
+      ```bash
+      uv pip install -r requirements_gpu.txt
+      ```
+   8. Upgrade version of six to avoid errors:
+      ```bash
+      uv pip install --upgrade six==1.17.0
+      ```
+   9. Install [calibre](https://calibre-ebook.com/download) (Optional dependency, needed if you need better text decoding capabilities, wider compatibility and want to create M4B audiobook). Also make sure that calibre is present in your PATH. For MacOS, do the following to add it to the PATH:
+      ```bash
+      echo 'export PATH="/Applications/calibre.app/Contents/MacOS:$PATH"' >> ~/.zshrc
+      source ~/.zshrc
+      ```
+   10. Install [ffmpeg](https://www.ffmpeg.org/download.html) (Needed for audio output format conversion and if you want to create M4B audiobook)
+   11. In the activated virtual environment, run `uvicorn app:app --host 0.0.0.0 --port 7860` to run the Gradio app. After the app has started, navigate to `http://127.0.0.1:7860` in the browser.
+   </details>
 
 ## Roadmap
 
 Planned future enhancements:
 
--  ⏳ Add support for running the app through docker.
 -  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
+-  ✅ Add support for running the app through docker.
 -  ✅ Create UI using Gradio.
 -  ✅ Try different voice combinations using `generate_audio_samples.py` and update the `kokoro_voice_map.json` to use better voices. 
 -  ✅ Add support for the these output formats: AAC, M4A, MP3, WAV, OPUS, FLAC, PCM, M4B.
