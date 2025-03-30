@@ -202,8 +202,9 @@ Watch the demo video:
       ```
    9. Install [calibre](https://calibre-ebook.com/download) (Optional dependency, needed if you need better text decoding capabilities, wider compatibility and want to create M4B audiobook). Also make sure that calibre is present in your PATH. For MacOS, do the following to add it to the PATH:
       ```bash
-      echo 'export PATH="/Applications/calibre.app/Contents/MacOS:$PATH"' >> ~/.zshrc
-      source ~/.zshrc
+      deactivate
+      echo 'export PATH="/Applications/calibre.app/Contents/MacOS:$PATH"' >> .venv/bin/activate
+      source .venv/bin/activate
       ```
    10. Install [ffmpeg](https://www.ffmpeg.org/download.html) (Needed for audio output format conversion and if you want to create M4B audiobook)
    11. In the activated virtual environment, run `uvicorn app:app --host 0.0.0.0 --port 7860` to run the Gradio app. After the app has started, navigate to `http://127.0.0.1:7860` in the browser.

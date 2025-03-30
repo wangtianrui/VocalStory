@@ -329,7 +329,7 @@ def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
             "narrator": {
                 "name": "narrator",
                 "age": "adult",
-                "gender": "female",
+                "gender": "female", # or male based on the user's selection in audiobook generation step 
                 "gender_score": 0  # Default score for the narrator
             }
         }
@@ -420,7 +420,8 @@ def main():
     # Start processing
     start_time = time.time()
     print("\n🔍 Identifying characters and processing the book...")
-    identify_characters_and_output_book_to_jsonl(book_text, protagonist)
+    for update in identify_characters_and_output_book_to_jsonl(book_text, protagonist):
+        print(update)
     end_time = time.time()
 
     # Calculate execution time

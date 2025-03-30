@@ -93,7 +93,7 @@ def identify_characters_wrapper(book_title):
         yield None
         return gr.Warning(f"Error identifying characters: {str(e)}")
 
-def generate_audiobook_wrapper(voice_type, output_format, book_file, book_title):
+def generate_audiobook_wrapper(voice_type, narrator_gender, output_format, book_file, book_title):
     """Wrapper for audiobook generation with validation and progress updates"""
     if book_file is None:
         yield None, None
@@ -111,7 +111,7 @@ def generate_audiobook_wrapper(voice_type, output_format, book_file, book_title)
         last_output = None
         audiobook_path = None
         # Pass through all yield values from the original function
-        for output in process_audiobook_generation(voice_type, output_format, book_file):
+        for output in process_audiobook_generation(voice_type, narrator_gender, output_format, book_file):
             last_output = output
             yield output, None  # Yield each progress update without file path
         
@@ -209,6 +209,12 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as gradio_app:
                     value="Single Voice",
                     info="Multi-Voice requires character identification"
                 )
+
+                narrator_gender = gr.Radio(
+                    ["male", "female"], 
+                    label="Choose whether you want the book to be read in a male or female voice",
+                    value="female"
+                )
                 
                 output_format = gr.Dropdown(
                     ["M4B (Chapters & Cover)", "AAC", "M4A", "MP3", "WAV", "OPUS", "FLAC", "PCM"], 
@@ -266,7 +272,7 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as gradio_app:
     # Update the generate_audiobook_wrapper to output both progress text and file path
     generate_btn.click(
         generate_audiobook_wrapper, 
-        inputs=[voice_type, output_format, book_input, book_title], 
+        inputs=[voice_type, narrator_gender, output_format, book_input, book_title], 
         outputs=[audio_output, audiobook_file],
         queue=True
     ).then(
