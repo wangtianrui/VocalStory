@@ -58,11 +58,11 @@ def download_with_progress(model_name):
 
 load_dotenv()
 
-OPENAI_BASE_URL=os.environ.get("OPENAI_BASE_URL")
-OPENAI_API_KEY=os.environ.get("OPENAI_API_KEY")
-OPENAI_MODEL_NAME=os.environ.get("OPENAI_MODEL_NAME")
+OPENAI_BASE_URL=os.environ.get("OPENAI_BASE_URL", "http://localhost:1234/v1")
+OPENAI_API_KEY=os.environ.get("OPENAI_API_KEY", "lm-studio")
+OPENAI_MODEL_NAME=os.environ.get("OPENAI_MODEL_NAME", "phi-4")
 
-warnings.simplefilter("ignore")
+# warnings.simplefilter("ignore")
 
 print("\n🚀 **Downloading the GLiNER Model ...**")
 

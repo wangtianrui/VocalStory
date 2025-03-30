@@ -32,8 +32,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-KOKORO_BASE_URL = os.environ.get("KOKORO_BASE_URL")
-KOKORO_API_KEY = os.environ.get("KOKORO_API_KEY")
+KOKORO_BASE_URL = os.environ.get("KOKORO_BASE_URL", "http://localhost:8880/v1")
+KOKORO_API_KEY = os.environ.get("KOKORO_API_KEY", "not-needed")
 
 os.makedirs("audio_samples", exist_ok=True)
 
