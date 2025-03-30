@@ -113,7 +113,7 @@ Watch the demo video:
          --gpus all \
          --env-file .env \
          -v model_cache:/app/model_cache \
-         ghcr.io/prakharsr/audiobook_creator_gpu:v1.0
+         ghcr.io/prakharsr/audiobook_creator_gpu:v1.1
       ```
 
       For CPU based inference
@@ -125,7 +125,7 @@ Watch the demo video:
          --network host \
          --env-file .env \
          -v model_cache:/app/model_cache \
-         ghcr.io/prakharsr/audiobook_creator_cpu:v1.0
+         ghcr.io/prakharsr/audiobook_creator_cpu:v1.1
       ```
    - Wait for the models to download and then navigate to http://localhost:7860 for the Gradio UI
    </details>
@@ -216,6 +216,7 @@ Planned future enhancements:
 
 -  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
+-  ✅ Give choice to the user to select the voice in which they want the book to be read (male voice/ female voice)
 -  ✅ Add support for running the app through docker.
 -  ✅ Create UI using Gradio.
 -  ✅ Try different voice combinations using `generate_audio_samples.py` and update the `kokoro_voice_map.json` to use better voices. 
