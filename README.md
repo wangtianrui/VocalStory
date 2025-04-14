@@ -216,6 +216,7 @@ Planned future enhancements:
 
 -  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
+-  ⏳ Add support for [Orpheus](https://github.com/canopyai/Orpheus-TTS). Orpheus also supports emotion tags for a more immersive listening experience.
 -  ✅ Give choice to the user to select the voice in which they want the book to be read (male voice/ female voice)
 -  ✅ Add support for running the app through docker.
 -  ✅ Create UI using Gradio.
