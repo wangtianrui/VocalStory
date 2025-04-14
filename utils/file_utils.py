@@ -19,10 +19,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import json
 import shutil
+import traceback
 
 def empty_file(file_name):
     # Open the file in write mode to make it empty
-    with open(file_name, 'w') as file:
+    with open(file_name, 'w', encoding='utf-8') as file:
         pass  # No content is written, so the file becomes empty
 
 def empty_directory(directory_path):
@@ -47,11 +48,12 @@ def empty_directory(directory_path):
                 shutil.rmtree(file_path)  # Remove the directory and its contents
         except Exception as e:
             # Handle exceptions and print an error message if deletion fails
+            traceback.print_exc()
             print(f"Failed to delete {file_path}: {e}")
 
 def read_json(filename):
     # Open the JSON file
-    with open(filename, 'r') as file:
+    with open(filename, 'r', encoding='utf-8') as file:
         # Load the JSON data
         data = json.load(file)
 
@@ -68,7 +70,7 @@ def write_json_to_file(data, file_name):
     The file is opened in write mode, so the contents of the file will be overwritten.
     If the file does not exist, it will be created.
     """
-    with open(file_name, 'w') as json_file:
+    with open(file_name, 'w', encoding='utf-8') as json_file:
         json.dump(data, json_file, indent=4)
 
 def write_jsons_to_jsonl_file(json_objects, file_name):
@@ -82,6 +84,6 @@ def write_jsons_to_jsonl_file(json_objects, file_name):
     The file is opened in append mode, so the JSON objects will be appended to the
     existing file contents. If the file does not exist, it will be created.
     """
-    with open(file_name, 'a') as jsonl_file:
+    with open(file_name, 'a', encoding='utf-8') as jsonl_file:
         for obj in json_objects:
             jsonl_file.write(json.dumps(obj) + '\n')

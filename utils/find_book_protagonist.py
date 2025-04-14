@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import requests
 import re
 from bs4 import BeautifulSoup
+import traceback
 
 def find_book_protagonist_using_search_engine_and_llm(book_title, openai_client, model_name, search_method='google'):
     """
@@ -224,6 +225,8 @@ def find_book_protagonist_using_search_engine_and_llm(book_title, openai_client,
     except requests.exceptions.RequestException as e:
         return f"Error making search request: {str(e)}"
     except Exception as e:
+        print(e)
+        traceback.print_exc()
         return f"An error occurred: {str(e)}"
     
 def find_book_protagonist(book_title, openai_client, model_name):

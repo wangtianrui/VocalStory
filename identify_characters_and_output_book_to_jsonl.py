@@ -276,6 +276,7 @@ def identify_character_gender_and_age_using_llm_and_assign_score(character_name,
         return character_info
     except Exception as e:
         print(f"Error: {e}. Defaulting to 'adult' age and 'unknown' gender in response.")
+        traceback.print_exc()
         character_info = {
             "name": character_name,
             "age": "adult",
@@ -401,7 +402,7 @@ def process_book_and_identify_characters(book_name):
 
     yield "Finding protagonist. Please wait..."
     protagonist = find_book_protagonist(book_name, openai_client, model_name)
-    f = open("converted_book.txt", "r")
+    f = open("converted_book.txt", "r", encoding='utf-8')
     book_text = f.read()
     yield f"Found protagonist: {protagonist}"
     time.sleep(1)
@@ -410,7 +411,7 @@ def process_book_and_identify_characters(book_name):
         yield update
 
 def main():
-    f = open("converted_book.txt", "r")
+    f = open("converted_book.txt", "r", encoding='utf-8')
     book_text = f.read()
 
     # Ask for the protagonist's name

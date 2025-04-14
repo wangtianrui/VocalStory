@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import subprocess
 import re
 import os
+import traceback
 from utils.run_shell_commands import run_shell_command
 
 # Escape double quotes by replacing them with \"
@@ -98,6 +99,7 @@ def get_audio_duration_using_raw_ffmpeg(file_path):
 
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         return None
 
 def generate_chapters_file(chapter_files, output_file="chapters.txt"):
@@ -134,6 +136,7 @@ def create_m4a_file_from_raw_aac_file(input_file_path, output_file_path):
         result = subprocess.run(cmd)
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         return None
 
 def create_aac_file_from_m4a_file(input_file_path, output_file_path):
@@ -143,6 +146,7 @@ def create_aac_file_from_m4a_file(input_file_path, output_file_path):
         result = subprocess.run(cmd)
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         return None
     
 def create_mp3_file_from_m4a_file(input_file_path, output_file_path):
@@ -152,6 +156,7 @@ def create_mp3_file_from_m4a_file(input_file_path, output_file_path):
         result = subprocess.run(cmd)
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         return None
     
 def create_wav_file_from_m4a_file(input_file_path, output_file_path):
@@ -161,6 +166,7 @@ def create_wav_file_from_m4a_file(input_file_path, output_file_path):
         result = subprocess.run(cmd)
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         return None
     
 def create_opus_file_from_m4a_file(input_file_path, output_file_path):
@@ -170,6 +176,7 @@ def create_opus_file_from_m4a_file(input_file_path, output_file_path):
         result = subprocess.run(cmd)
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         return None
     
 def create_flac_file_from_m4a_file(input_file_path, output_file_path):
@@ -179,6 +186,7 @@ def create_flac_file_from_m4a_file(input_file_path, output_file_path):
         result = subprocess.run(cmd)
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         return None
     
 def create_pcm_file_from_m4a_file(input_file_path, output_file_path):
@@ -188,6 +196,7 @@ def create_pcm_file_from_m4a_file(input_file_path, output_file_path):
         result = subprocess.run(cmd)
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         return None
     
 def convert_audio_file_formats(input_format, output_format, folder_path, file_name):
@@ -224,7 +233,7 @@ def merge_chapters_to_m4b(book_path, chapter_files):
     """
     file_list_path = "chapter_list.txt"
     
-    with open(file_list_path, "w") as f:
+    with open(file_list_path, "w", encoding='utf-8') as f:
         for chapter in chapter_files:
             f.write(f"file '{os.path.join('temp_audio', chapter)}'\n")
 
@@ -301,7 +310,7 @@ def merge_chapters_to_standard_audio_file(chapter_files):
     file_list_path = "chapter_list.txt"
     
     # Write the list of chapter files to a text file (ffmpeg input)
-    with open(file_list_path, "w") as f:
+    with open(file_list_path, "w", encoding='utf-8') as f:
         for chapter in chapter_files:
             f.write(f"file '{os.path.join('temp_audio', chapter)}'\n")
 

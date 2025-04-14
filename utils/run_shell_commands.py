@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import subprocess
 import shutil
 import os
+import traceback
 
 def get_system_python_paths():
     """
@@ -139,6 +140,7 @@ def run_shell_command_without_virtualenv(command):
         
     except Exception as e:
         print(f"Error: {e}")
+        traceback.print_exc()
         return None
     
 def run_shell_command(command):
@@ -155,5 +157,7 @@ def run_shell_command(command):
         return result
         
     except Exception as e:
+        print(e)
+        traceback.print_exc()
         print("Error in run_shell_command, running  run_shell_command_without_virtualenv")
         return run_shell_command_without_virtualenv(command)

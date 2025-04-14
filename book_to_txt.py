@@ -20,6 +20,7 @@ import re
 import sys
 import time
 import textract
+import traceback
 from utils.run_shell_commands import run_shell_command, check_if_calibre_is_installed
 
 def extract_text_from_book_using_textract(book_path):
@@ -47,7 +48,7 @@ def extract_text_from_book_using_calibre(book_path):
     result = run_shell_command(command)
 
     # Open the resulting text file and read its contents
-    with open("extracted_book.txt", "r") as f:
+    with open("extracted_book.txt", "r", encoding='utf-8') as f:
         book_text = f.read()
 
     return book_text
@@ -164,6 +165,8 @@ def extract_main_content(text, start_marker="PROLOGUE", end_marker="ABOUT THE AU
             
         return '\n'.join(lines).strip()
     except Exception as e:
+        print(e)
+        traceback.print_exc()
         print("Error", e, ", not extracting main content.")
         return text
     

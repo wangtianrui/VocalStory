@@ -41,6 +41,17 @@ openai_client = OpenAI(
     base_url=KOKORO_BASE_URL, api_key=KOKORO_API_KEY
 )
 
+def sanitize_filename(text):
+    # Remove or replace problematic characters
+    text = text.replace("'", '').replace('"', '').replace('/', ' ').replace('.', ' ')
+    text = text.replace(':', '').replace('?', '').replace('\\', '').replace('|', '')
+    text = text.replace('*', '').replace('<', '').replace('>', '').replace('&', 'and')
+    
+    # Normalize whitespace and trim
+    text = ' '.join(text.split())
+    
+    return text
+
 def split_and_annotate_text(text):
     """Splits text into dialogue and narration while annotating each segment."""
     parts = re.split(r'("[^"]+")', text)  # Keep dialogues in the split result
@@ -123,7 +134,7 @@ def generate_audio_with_single_voice(output_format, narrator_gender, generate_m4
     The function prints a message when the generation is complete.
     """
     # Read the text from the file
-    with open("converted_book.txt", "r") as f:
+    with open("converted_book.txt", "r", encoding='utf-8') as f:
         text = f.read()
     lines = text.split("\n")
 
@@ -158,7 +169,7 @@ def generate_audio_with_single_voice(output_format, narrator_gender, generate_m4
             is_chapter_heading = check_if_chapter_heading(line)
             if is_chapter_heading:
                 chapter_index += 1
-                current_chapter_audio = f"{line.replace("'", "").replace('"', '').replace('/', ' ')}.aac"
+                current_chapter_audio = f"{sanitize_filename(line)}.aac"
             
             chapter_path = os.path.join(temp_audio_dir, current_chapter_audio)
 
@@ -281,7 +292,7 @@ def generate_audio_with_multiple_voices(output_format, narrator_gender, generate
             is_chapter_heading = check_if_chapter_heading(line)
             if is_chapter_heading:
                 chapter_index += 1
-                current_chapter_audio = f"{line.replace("'", "").replace('"', '').replace('/', ' ')}.aac"
+                current_chapter_audio = f"{sanitize_filename(line)}.aac"
             
             chapter_path = os.path.join(temp_audio_dir, current_chapter_audio)
 

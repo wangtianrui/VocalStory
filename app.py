@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import gradio as gr
 import os
+import traceback
 from fastapi import FastAPI
 from book_to_txt import process_book_and_extract_text, save_book
 from identify_characters_and_output_book_to_jsonl import process_book_and_identify_characters
@@ -56,6 +57,8 @@ def text_extraction_wrapper(book_file, text_decoding_option, book_title):
         yield last_output
         return gr.Info("Text extracted successfully! You can now edit the content.", duration=5)
     except Exception as e:
+        print(e)
+        traceback.print_exc()
         yield None
         return gr.Warning(f"Error extracting text: {str(e)}")
 
@@ -71,6 +74,8 @@ def save_book_wrapper(text_content, book_title):
         save_book(text_content)
         return gr.Info("📖 Book saved successfully as 'converted_book.txt'!", duration=10)
     except Exception as e:
+        print(e)
+        traceback.print_exc()
         return gr.Warning(f"Error saving book: {str(e)}")
 
 def identify_characters_wrapper(book_title):
@@ -90,6 +95,8 @@ def identify_characters_wrapper(book_title):
         yield last_output
         return gr.Info("Character identification complete! Proceed to audiobook generation.", duration=5)
     except Exception as e:
+        print(e)
+        traceback.print_exc()
         yield None
         return gr.Warning(f"Error identifying characters: {str(e)}")
 
@@ -126,6 +133,8 @@ def generate_audiobook_wrapper(voice_type, narrator_gender, output_format, book_
         yield last_output, audiobook_path
         return gr.Info(f"Audiobook generated successfully in {output_format} format! You can now download it in the Download section. Click on the blue download link next to the file name.", duration=10)
     except Exception as e:
+        print(e)
+        traceback.print_exc()
         yield None, None
         return gr.Warning(f"Error generating audiobook: {str(e)}")
 
