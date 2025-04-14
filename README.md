@@ -113,7 +113,7 @@ Watch the demo video:
          --gpus all \
          --env-file .env \
          -v model_cache:/app/model_cache \
-         ghcr.io/prakharsr/audiobook_creator_gpu:v1.1
+         ghcr.io/prakharsr/audiobook_creator_gpu:v1.2
       ```
 
       For CPU based inference
@@ -125,7 +125,7 @@ Watch the demo video:
          --network host \
          --env-file .env \
          -v model_cache:/app/model_cache \
-         ghcr.io/prakharsr/audiobook_creator_cpu:v1.1
+         ghcr.io/prakharsr/audiobook_creator_cpu:v1.2
       ```
    - Wait for the models to download and then navigate to http://localhost:7860 for the Gradio UI
    </details>
