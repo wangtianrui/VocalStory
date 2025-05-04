@@ -68,7 +68,7 @@ Watch the demo video:
 ### Initial Setup
 - Install [Docker](https://www.docker.com/products/docker-desktop/)
 - Make sure host networking is enabled in your docker setup : https://docs.docker.com/engine/network/drivers/host/. Host networking is currently supported in Linux and in docker desktop. To use with [docker desktop, follow these steps](https://docs.docker.com/engine/network/drivers/host/#docker-desktop)
-- Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `phi-4`).
+- Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen3-14b`).
 - Set up the Kokoro TTS model via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI). To get started, run the docker image using the following command:
 
    For CUDA based GPU inference (Apple Silicon GPUs currently not supported, use CPU based inference instead)
@@ -140,7 +140,7 @@ Watch the demo video:
       cd audiobook-creator
       ```
    - Make sure your .env is configured correctly and your LLM is running
-   - If Kokoro docker container is already running, you can either stop and remove it or comment the kokoro_fastapi service in docker compose. If its not running then it will automatically start when you run docker compose up command
+   - If Kokoro docker container is already running, you can either stop and remove it or comment the kokoro_fastapi service and depends_on param in docker compose. If its not running then it will automatically start when you run docker compose up command
    - Copy the .env file into the audiobook-creator folder
    - Choose between the types of inference:
    
@@ -217,6 +217,7 @@ Planned future enhancements:
 -  ⏳ Add support for choosing between various languages which are currently supported by Kokoro.
 -  ⏳ Add support for [Zonos](https://github.com/Zyphra/Zonos), Models: https://huggingface.co/Zyphra/Zonos-v0.1-hybrid, https://huggingface.co/Zyphra/Zonos-v0.1-transformer. Zonos supports voices with a wide range of emotions so adding that as a feature will greatly enhance the listening experience.
 -  ⏳ Add support for [Orpheus](https://github.com/canopyai/Orpheus-TTS). Orpheus also supports emotion tags for a more immersive listening experience.
+-  ✅ Support batch inference for Kokoro to speed up audiobook generation
 -  ✅ Give choice to the user to select the voice in which they want the book to be read (male voice/ female voice)
 -  ✅ Add support for running the app through docker.
 -  ✅ Create UI using Gradio.
