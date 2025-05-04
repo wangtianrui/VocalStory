@@ -21,15 +21,16 @@ import os
 import time
 import json
 import random
+import asyncio
 import traceback
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 from tqdm import tqdm
 import torch
 from gliner import GLiNER
 import warnings
 from utils.file_utils import write_jsons_to_jsonl_file, empty_file, write_json_to_file
 from utils.find_book_protagonist import find_book_protagonist
-from utils.check_if_llm_is_up import check_if_llm_is_up
+from utils.llm_utils import check_if_have_to_include_no_think_token, check_if_llm_is_up
 from dotenv import load_dotenv
 from huggingface_hub import snapshot_download
 
@@ -60,13 +61,13 @@ load_dotenv()
 
 OPENAI_BASE_URL=os.environ.get("OPENAI_BASE_URL", "http://localhost:1234/v1")
 OPENAI_API_KEY=os.environ.get("OPENAI_API_KEY", "lm-studio")
-OPENAI_MODEL_NAME=os.environ.get("OPENAI_MODEL_NAME", "phi-4")
+OPENAI_MODEL_NAME=os.environ.get("OPENAI_MODEL_NAME", "qwen3-14b")
 
 # warnings.simplefilter("ignore")
 
 print("\n🚀 **Downloading the GLiNER Model ...**")
 
-openai_client = OpenAI(base_url=OPENAI_BASE_URL, api_key=OPENAI_API_KEY)
+async_openai_client = AsyncOpenAI(base_url=OPENAI_BASE_URL, api_key=OPENAI_API_KEY)
 model_name = OPENAI_MODEL_NAME
 gliner_model = download_with_progress("urchade/gliner_large-v2.1")
 
@@ -186,7 +187,7 @@ def identify_speaker_using_named_entity_recognition(
 
     return speaker.lower()
 
-def identify_character_gender_and_age_using_llm_and_assign_score(character_name, index, lines):
+async def identify_character_gender_and_age_using_llm_and_assign_score(character_name, index, lines):
     """
     Identifies a character's gender and age using a Language Model (LLM) and assigns a gender score.
 
@@ -205,15 +206,18 @@ def identify_character_gender_and_age_using_llm_and_assign_score(character_name,
         character_dialogues = lines[max(0, index - 2):index + 5]
         text_character_dialogues = "\n".join(character_dialogues)
 
+        no_think_token = check_if_have_to_include_no_think_token()
+
         # System prompt to guide the LLM in inferring age and gender
         system_prompt = """
+        {no_think_token}
         You are an expert in analyzing character names and inferring their gender and age based on the character's name and the text excerpt. Take into consideration the character name and the text excerpt and then assign the age and gender accordingly. 
         For a masculine character return the gender as 'male', for a feminine character return the gender as 'female' and for a character whose gender is neutral/ unknown return gender as 'unknown'. 
         For assigning the age, if the character is a child return the age as 'child', if the character is an adult return the age as 'adult' and if the character is an elderly return the age as 'elderly'.
         Return only the gender and age as the output. Dont give any explanation or doubt. 
         Give the output as a string in the following format:
-        Age: {age}
-        Gender: {gender}"""
+        Age: <age>
+        Gender: <gender>""".format(no_think_token=no_think_token)
 
         # User prompt containing the character name and dialogue context
         user_prompt = f"""
@@ -223,10 +227,13 @@ def identify_character_gender_and_age_using_llm_and_assign_score(character_name,
         """
 
         # Query the LLM to infer age and gender
-        response = openai_client.chat.completions.create(
+        response = await async_openai_client.chat.completions.create(
             model=model_name,
-            messages=[{"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}]
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.2
         )
 
         # Extract and clean the LLM's response
@@ -241,11 +248,11 @@ def identify_character_gender_and_age_using_llm_and_assign_score(character_name,
         gender = gender_text.split(":")[1].strip()
 
         # Default to "adult" if age is unknown or neutral
-        if age == "" or age == "unknown" or age == "neutral":
+        if age not in ["child", "adult", "elderly"]:
             age = "adult"
 
         # Default to "unknown" if gender is unknown or neutral
-        if gender == "" or gender == "unknown" or gender == "neutral":
+        if gender not in ["male", "female", "unknown"]:
             gender = "unknown"
 
         # Assign a gender score based on inferred gender and age
@@ -285,7 +292,7 @@ def identify_character_gender_and_age_using_llm_and_assign_score(character_name,
         }
         return character_info
 
-def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
+async def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
     """
     Processes a given text to identify characters, assign gender scores, and output the results to JSONL files.
 
@@ -370,7 +377,7 @@ def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
                     # If the speaker is new, assign gender and age scores using LLM
                     if speaker not in known_characters:
                         known_characters.add(speaker)
-                        character_gender_map["scores"][speaker] = identify_character_gender_and_age_using_llm_and_assign_score(speaker, index, lines)
+                        character_gender_map["scores"][speaker] = await identify_character_gender_and_age_using_llm_and_assign_score(speaker, index, lines)
 
                     prev_speaker = speaker
                 else:
@@ -394,23 +401,23 @@ def identify_characters_and_output_book_to_jsonl(text: str, protagonist):
 
     yield "Character Identification Completed. You can now move onto the next step (Audiobook generation)."
 
-def process_book_and_identify_characters(book_name):
-    is_llm_up, message = check_if_llm_is_up(openai_client, model_name)
+async def process_book_and_identify_characters(book_name):
+    is_llm_up, message = await check_if_llm_is_up(async_openai_client, model_name)
 
     if not is_llm_up:
         raise Exception(message)
 
     yield "Finding protagonist. Please wait..."
-    protagonist = find_book_protagonist(book_name, openai_client, model_name)
+    protagonist = await find_book_protagonist(book_name, async_openai_client, model_name)
     f = open("converted_book.txt", "r", encoding='utf-8')
     book_text = f.read()
     yield f"Found protagonist: {protagonist}"
-    time.sleep(1)
+    await asyncio.sleep(1)
 
-    for update in identify_characters_and_output_book_to_jsonl(book_text, protagonist):
+    async for update in identify_characters_and_output_book_to_jsonl(book_text, protagonist):
         yield update
 
-def main():
+async def main():
     f = open("converted_book.txt", "r", encoding='utf-8')
     book_text = f.read()
 
@@ -421,7 +428,7 @@ def main():
     # Start processing
     start_time = time.time()
     print("\n🔍 Identifying characters and processing the book...")
-    for update in identify_characters_and_output_book_to_jsonl(book_text, protagonist):
+    async for update in identify_characters_and_output_book_to_jsonl(book_text, protagonist):
         print(update)
     end_time = time.time()
 
@@ -436,4 +443,4 @@ def main():
     print("\n🚀 Happy audiobook creation!\n")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

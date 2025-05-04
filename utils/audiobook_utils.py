@@ -138,6 +138,16 @@ def create_m4a_file_from_raw_aac_file(input_file_path, output_file_path):
         print(f"Error: {e}")
         traceback.print_exc()
         return None
+    
+def create_m4a_file_from_wav_file(input_file_path, output_file_path):
+    cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c:a", "aac", "-b:a", "240k", output_file_path]
+    
+    try:
+        result = subprocess.run(cmd)
+    except Exception as e:
+        print(f"Error: {e}")
+        traceback.print_exc()
+        return None
 
 def create_aac_file_from_m4a_file(input_file_path, output_file_path):
     cmd = ["ffmpeg", "-y", "-i", input_file_path, "-c", "copy", output_file_path]
@@ -210,6 +220,8 @@ def convert_audio_file_formats(input_format, output_format, folder_path, file_na
                 create_m4a_file_from_raw_aac_file(input_path, output_path)
             elif input_format == "m4a":
                 pass # Already generated
+            elif input_format == "wav":
+                create_m4a_file_from_wav_file(input_path, output_path)
         elif output_format == "mp3":
             create_mp3_file_from_m4a_file(input_path, output_path)
         elif output_format == "wav":

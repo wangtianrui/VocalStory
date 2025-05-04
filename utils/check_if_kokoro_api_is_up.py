@@ -18,9 +18,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import traceback
 
-def check_if_kokoro_api_is_up(client):
+async def check_if_kokoro_api_is_up(client):
     try:
-        with client.audio.speech.with_streaming_response.create(
+        async with client.audio.speech.with_streaming_response.create(
             model="kokoro",
             voice="af_heart",
             response_format="aac",  # Ensuring format consistency

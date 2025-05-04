@@ -78,47 +78,50 @@ def save_book_wrapper(text_content, book_title):
         traceback.print_exc()
         return gr.Warning(f"Error saving book: {str(e)}")
 
-def identify_characters_wrapper(book_title):
+async def identify_characters_wrapper(book_title):
     """Wrapper for character identification with validation and progress updates"""
     if not book_title:
+        yield gr.Warning("Please enter a book title first.")
         yield None
-        return gr.Warning("Please enter a book title first.")
+        return
 
     try:
         last_output = None
         # Pass through all yield values from the original function
-        for output in process_book_and_identify_characters(book_title):
+        async for output in process_book_and_identify_characters(book_title):
             last_output = output
             yield output  # Yield each progress update
         
         # Final yield with success notification
+        yield gr.Info("Character identification complete! Proceed to audiobook generation.", duration=5)
         yield last_output
-        return gr.Info("Character identification complete! Proceed to audiobook generation.", duration=5)
+        return
     except Exception as e:
         print(e)
         traceback.print_exc()
+        yield gr.Warning(f"Error identifying characters: {str(e)}")
         yield None
-        return gr.Warning(f"Error identifying characters: {str(e)}")
+        return
 
-def generate_audiobook_wrapper(voice_type, narrator_gender, output_format, book_file, book_title):
+async def generate_audiobook_wrapper(voice_type, narrator_gender, output_format, book_file, book_title):
     """Wrapper for audiobook generation with validation and progress updates"""
     if book_file is None:
+        yield gr.Warning("Please upload a book file first."), None
         yield None, None
-        return gr.Warning("Please upload a book file first.")
-    
+        return
     if not book_title:
+        yield gr.Warning("Please enter a book title first."), None
         yield None, None
-        return gr.Warning("Please enter a book title first.")
-    
+        return
     if not voice_type or not output_format:
+        yield gr.Warning("Please select voice type and output format."), None
         yield None, None
-        return gr.Warning("Please select voice type and output format.")
-    
+        return
     try:
         last_output = None
         audiobook_path = None
         # Pass through all yield values from the original function
-        for output in process_audiobook_generation(voice_type, narrator_gender, output_format, book_file):
+        async for output in process_audiobook_generation(voice_type, narrator_gender, output_format, book_file):
             last_output = output
             yield output, None  # Yield each progress update without file path
         
@@ -130,13 +133,15 @@ def generate_audiobook_wrapper(voice_type, narrator_gender, output_format, book_
         audiobook_path = os.path.join("generated_audiobooks", f"audiobook.{file_extension}")
         
         # Final yield with success notification and file path
+        yield gr.Info(f"Audiobook generated successfully in {output_format} format! You can now download it in the Download section. Click on the blue download link next to the file name.", duration=10), None
         yield last_output, audiobook_path
-        return gr.Info(f"Audiobook generated successfully in {output_format} format! You can now download it in the Download section. Click on the blue download link next to the file name.", duration=10)
+        return
     except Exception as e:
         print(e)
         traceback.print_exc()
+        yield gr.Warning(f"Error generating audiobook: {str(e)}"), None
         yield None, None
-        return gr.Warning(f"Error generating audiobook: {str(e)}")
+        return
 
 with gr.Blocks(css=css, theme=gr.themes.Default()) as gradio_app:
     gr.Markdown("# 📖 Audiobook Creator")

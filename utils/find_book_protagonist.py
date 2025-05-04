@@ -20,15 +20,18 @@ import requests
 import re
 from bs4 import BeautifulSoup
 import traceback
+from openai import OpenAI, AsyncOpenAI
 
-def find_book_protagonist_using_search_engine_and_llm(book_title, openai_client, model_name, search_method='google'):
+from utils.llm_utils import check_if_have_to_include_no_think_token
+
+async def find_book_protagonist_using_search_engine_and_llm(book_title, async_openai_client: AsyncOpenAI, model_name, search_method='google'):
     """
     Finds the protagonist of a book by scraping search results from various search engines
     and using a language model to extract the protagonist's name.
 
     Args:
         book_title (str): The title of the book for which to find the protagonist.
-        openai_client (OpenAI): The OpenAI client instance for making LLM API requests.
+        async_openai_client (OpenAI): The OpenAI client instance for making LLM API requests.
         model_name (str): The name of the OpenAI model to use for completion.
         search_method (str, optional): The search engine method to use. Options include
             'google', 'duckduckgo', 'bing', 'goodreads', and 'wikipedia'. Defaults to 'google'.
@@ -208,12 +211,13 @@ def find_book_protagonist_using_search_engine_and_llm(book_title, openai_client,
             
             # Make the API call to LLM
 
-            response = openai_client.chat.completions.create(
+            response = await async_openai_client.chat.completions.create(
                 model=model_name,
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant that extracts book protagonist information from text."},
+                    {"role": "system", "content": f"{check_if_have_to_include_no_think_token()} You are a helpful assistant that extracts book protagonist information from text."},
                     {"role": "user", "content": prompt}
-                ]
+                ],
+                temperature=0
             )
             
             # Extract and return the protagonist information
@@ -229,10 +233,10 @@ def find_book_protagonist_using_search_engine_and_llm(book_title, openai_client,
         traceback.print_exc()
         return f"An error occurred: {str(e)}"
     
-def find_book_protagonist(book_title, openai_client, model_name):
+async def find_book_protagonist(book_title, async_openai_client: AsyncOpenAI, model_name):
     protagonist = "unknown"
     for method in ["google", "wikipedia", "bing", "goodreads", "duckduckgo"]:
-        result = find_book_protagonist_using_search_engine_and_llm(book_title, openai_client, model_name, method)
+        result = await find_book_protagonist_using_search_engine_and_llm(book_title, async_openai_client, model_name, method)
         if result != "No search results found for this book.":
             protagonist = result
             break
