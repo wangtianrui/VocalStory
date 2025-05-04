@@ -17,13 +17,25 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import traceback
+import os
+from dotenv import load_dotenv
 
-def check_if_llm_is_up(openai_client, model_name):
+load_dotenv()
+
+NO_THINK_MODE = os.environ.get("NO_THINK_MODE", "true")
+
+def check_if_have_to_include_no_think_token():
+    if NO_THINK_MODE == True or NO_THINK_MODE == "true":
+        return "/no_think"
+    else:
+        return ""
+
+async def check_if_llm_is_up(async_openai_client, model_name):
     try:
-        response = openai_client.chat.completions.create(
+        response = await async_openai_client.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "user", "content": "Hello, this is a health test. Reply with any word if you're working."}
+                {"role": "user", "content": f"{check_if_have_to_include_no_think_token()} Hello, this is a health test. Reply with any word if you're working."}
             ]
         )
         
