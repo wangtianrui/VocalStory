@@ -33,23 +33,29 @@ def empty_directory(directory_path):
     Args:
         directory_path (str): The path to the directory to empty.
 
-    This function iterates through each item in the directory. If the item is a file
-    or a symbolic link, it is unlinked (deleted). If the item is a directory, it and 
-    all its contents are removed using shutil.rmtree.
+    This function checks if the directory exists before attempting to empty it.
+    If it exists, it iterates through each item and deletes files, symbolic links,
+    and subdirectories.
     """
+    if not os.path.exists(directory_path):
+        print(f"Directory does not exist: {directory_path}")
+        return
+
+    if not os.path.isdir(directory_path):
+        print(f"Path is not a directory: {directory_path}")
+        return
+
     for filename in os.listdir(directory_path):
         file_path = os.path.join(directory_path, filename)
         try:
-            # Check if the current item is a file or symbolic link
             if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)  # Remove the file or symbolic link
-            # Check if the current item is a directory
+                os.unlink(file_path)
             elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)  # Remove the directory and its contents
+                shutil.rmtree(file_path)
         except Exception as e:
-            # Handle exceptions and print an error message if deletion fails
             traceback.print_exc()
             print(f"Failed to delete {file_path}: {e}")
+
 
 def read_json(filename):
     # Open the JSON file
