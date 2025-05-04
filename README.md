@@ -71,7 +71,7 @@ Watch the demo video:
 - Set up your LLM and expose an OpenAI-compatible endpoint (e.g., using LM Studio with `qwen3-14b`).
 - Set up the Kokoro TTS model via [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI). To get started, run the docker image using the following command:
 
-   For CUDA based GPU inference (Apple Silicon GPUs currently not supported, use CPU based inference instead)
+   For CUDA based GPU inference (Apple Silicon GPUs currently not supported, use CPU based inference instead). Choose the value of KOKORO_MAX_PARALLEL_REQUESTS_BATCH_SIZE based on [this guide](https://github.com/prakharsr/audiobook-creator/?tab=readme-ov-file#parallel-batch-inferencing-of-audio-for-faster-audio-generation)
 
    ```bash
   docker run \
@@ -79,17 +79,21 @@ Watch the demo video:
     --restart always \
     --network host \
     --gpus all \
-    ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.2
+    ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.2 \
+    uvicorn api.src.main:app --host 0.0.0.0 --port 8880 --log-level debug \
+    --workers {KOKORO_MAX_PARALLEL_REQUESTS_BATCH_SIZE}
    ```
 
-   For CPU based inference
+   For CPU based inference. In this case you can keep number of workers as 1 as only mostly GPU based inferencing benefits from parallel workers and batch requests.
 
    ```bash
   docker run \
     --name kokoro_service \
     --restart always \
     --network host \
-    ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2
+    ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2 \
+    uvicorn api.src.main:app --host 0.0.0.0 --port 8880 --log-level debug \
+    --workers 1
    ```
 - Create a .env file from .env_sample and configure it with the correct values. Make sure you follow the instructions mentioned at the top of .env_sample to avoid errors.
    ```bash
@@ -144,7 +148,7 @@ Watch the demo video:
    - Copy the .env file into the audiobook-creator folder
    - Choose between the types of inference:
    
-      For CUDA based GPU inference (Apple Silicon GPUs currently not supported, use CPU based inference instead)
+      For CUDA based GPU inference (Apple Silicon GPUs currently not supported, use CPU based inference instead). Choose the value of KOKORO_MAX_PARALLEL_REQUESTS_BATCH_SIZE based on [this guide](https://github.com/prakharsr/audiobook-creator/?tab=readme-ov-file#parallel-batch-inferencing-of-audio-for-faster-audio-generation) and set the value in kokoro_fastapi service and env variable.
 
       ```bash
       cd docker/gpu
@@ -152,7 +156,7 @@ Watch the demo video:
       docker compose up --build
       ```
 
-      For CPU based inference
+      For CPU based inference. In this case you can keep number of workers as 1 as only mostly GPU based inferencing benefits from parallel workers and batch requests.
 
       ```bash
       cd docker/cpu
@@ -209,6 +213,10 @@ Watch the demo video:
    10. Install [ffmpeg](https://www.ffmpeg.org/download.html) (Needed for audio output format conversion and if you want to create M4B audiobook)
    11. In the activated virtual environment, run `uvicorn app:app --host 0.0.0.0 --port 7860` to run the Gradio app. After the app has started, navigate to `http://127.0.0.1:7860` in the browser.
    </details>
+
+### Parallel batch inferencing of audio for faster audio generation
+
+- Choose the value of **KOKORO_MAX_PARALLEL_REQUESTS_BATCH_SIZE** based on your available VRAM to accelerate the generation of audio by using parallel batch inferencing. This variable is used while setting up the number of workers in kokoro docker container and as an env varible for defining the max number of parallel requests that can be made to kokoro fastapi, so make sure you set the same values for both of them. You can consider setting this value to your available (VRAM/ 2) and play around with the value to see if it works best. If you are unsure then a good starting point for this value can be a value of 2. If you face issues of running out of memory then consider lowering the value for both workers and for the env variable.
 
 ## Roadmap
 
