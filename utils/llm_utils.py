@@ -31,15 +31,25 @@ def check_if_have_to_include_no_think_token():
         return ""
 
 async def check_if_llm_is_up(async_openai_client, model_name):
-    try:
-        response = await async_openai_client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {"role": "user", "content": f"{check_if_have_to_include_no_think_token()} Hello, this is a health test. Reply with any word if you're working."}
-            ]
-        )
+    # try:
+    #     response = await async_openai_client.chat.completions.create(
+    #         model=model_name,
+    #         messages=[
+    #             {"role": "user", "content": f"{check_if_have_to_include_no_think_token()} Hello, this is a health test. Reply with any word if you're working."}
+    #         ]
+    #     )
         
-        return True, response.choices[0].message.content.strip()
+    #     return True, response.choices[0].message.content.strip()
+    # except Exception as e:
+    #     traceback.print_exc()
+    #     return False, "Your configured LLM is not working. Please check if the .env file is correctly set up. Error: " + str(e)
+    try:
+        response = await async_openai_client.inference(
+            model=model_name,
+            system_prompt="content",
+            user_prompt=f"{check_if_have_to_include_no_think_token()} Hello, this is a health test. Reply with any word if you're working."
+        )
+        return True, response
     except Exception as e:
         traceback.print_exc()
         return False, "Your configured LLM is not working. Please check if the .env file is correctly set up. Error: " + str(e)

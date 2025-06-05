@@ -4,7 +4,16 @@ generated_audiobooks/
 model_cache/
 audio_samples/
 temp_audio/
+prepare_data/
 todo.md
 .venv/
 .DS_Store
 .env
+*.txt
+*.json
+*.jsonl
+*.aac
+*.wav
+*.m4a
+outputs/
+debug_test.py

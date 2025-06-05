@@ -211,18 +211,24 @@ async def find_book_protagonist_using_search_engine_and_llm(book_title, async_op
             
             # Make the API call to LLM
 
-            response = await async_openai_client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": f"{check_if_have_to_include_no_think_token()} You are a helpful assistant that extracts book protagonist information from text."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0
-            )
+            # response = await async_openai_client.chat.completions.create(
+            #     model=model_name,
+            #     messages=[
+                    # {"role": "system", "content": f"{check_if_have_to_include_no_think_token()} You are a helpful assistant that extracts book protagonist information from text."},
+                    # {"role": "user", "content": prompt}
+            #     ],
+            #     temperature=0
+            # )
             
             # Extract and return the protagonist information
-            protagonist_info = response.choices[0].message.content.strip()
-            return protagonist_info.lower()
+            # protagonist_info = response.choices[0].message.content.strip()
+            protagonist_info = async_openai_client.inference(
+                system_prompt=f"{check_if_have_to_include_no_think_token()} You are a helpful assistant that extracts book protagonist information from text.",
+                user_prompt=prompt,
+                temperature=0.1,
+                model_name=model_name
+            )
+            return protagonist_info.strip().lower()
         else:
             return "No search results found for this book."
             

@@ -328,6 +328,7 @@ def merge_chapters_to_standard_audio_file(chapter_files):
 
     # Construct the output file path
     output_file = f"generated_audiobooks/audiobook.m4a"
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     # Construct the ffmpeg command
     ffmpeg_cmd = (
