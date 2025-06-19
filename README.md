@@ -2,17 +2,18 @@
     <h1>
     StoryTelling DIY
     </h1>
-    <img src="./pics/logo.png" alt="Contributor 1" width="150" />
+    <img src="./pics/logo.png" alt="Contributor 1" width="200" />
 </div>
 
 ## Overview
 This is an open-source project for generating audiobooks from novels. It modularizes audiobook text processing and speech synthesis (TTS) functionalities through APIs, making it easy for users to replace models and algorithms with their own. The project is licensed under the GNU General Public License v3.0 (GPL-3.0), ensuring that it remains free and open for everyone to use, modify, and distribute.
 
 ## Key Features
-<figure align="center">
+
+<p align="center">
   <img src="./pics/pipeline.png" alt="Framework flowchart" width="700" />
-  <figcaption><b>Our framework flowchart.</b></figcaption>
-</figure>
+</p>
+<p align="center"><em>Our framework flowchart.</em></p>
 
 
 * Organizes LLM, TTS, and quality evaluation modules to work together via flexible API services
