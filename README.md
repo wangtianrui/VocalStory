@@ -46,6 +46,11 @@ This is an open-source project for generating audiobooks from novels. It modular
     ```shell
     bash run.sh
     ```
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0). See the [LICENSE](https://github.com/wangtianrui/VocalStory/blob/main/LICENSE) file for more details.
+
 ## Credits 
 
 * Main Contributors
