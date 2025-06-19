@@ -1,9 +1,19 @@
-# StoryTelling DIY
+<div align="center">
+    <h1>
+    StoryTelling DIY
+    </h1>
+    <img src="./pics/logo.png" alt="Contributor 1" width="150" />
+</div>
 
 ## Overview
 This is an open-source project for generating audiobooks from novels. It modularizes audiobook text processing and speech synthesis (TTS) functionalities through APIs, making it easy for users to replace models and algorithms with their own. The project is licensed under the GNU General Public License v3.0 (GPL-3.0), ensuring that it remains free and open for everyone to use, modify, and distribute.
 
 ## Key Features
+<figure align="center">
+  <img src="./pics/pipeline.png" alt="Framework flowchart" width="700" />
+  <figcaption><b>Our framework flowchart.</b></figcaption>
+</figure>
+
 
 * Organizes LLM, TTS, and quality evaluation modules to work together via flexible API services
 * Provides an extensible framework that can be customized to meet individual needs
@@ -13,25 +23,28 @@ This is an open-source project for generating audiobooks from novels. It modular
 ## Get Started
 
 * Create a conda environment
-```shell
-conda create -n storytelling python==3.10
-```
+    ```shell
+    conda create -n storytelling python==3.10
+    ```
 
 * Install dependencies
-pip install -r requirements.txt
+    
+    ```shell
+    pip install -r requirements.txt
+    ```
 
 * Run APIs for LLM, TTS, and QualityCheck
-```shell
-bash wescon/run_narration.sh # narration generation
-bash wescon/run.sh # multi-role dialogue generation
-bash llm/run.sh # LLM
-bash filter/run.sh # phoneme error rate, speaker similarity, emotion similarity checks
-```
+    ```shell
+    bash wescon/run_narration.sh # narration generation
+    bash wescon/run.sh # multi-role dialogue generation
+    bash llm/run.sh # LLM
+    bash filter/run.sh # phoneme error rate, speaker similarity, emotion similarity checks
+    ```
 
 * Run the UI for creation
-```shell
-bash run.sh
-```
+    ```shell
+    bash run.sh
+    ```
 ## Credits 
 
 * Main Contributors
