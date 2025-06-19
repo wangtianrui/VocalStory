@@ -15,5 +15,6 @@ todo.md
 *.aac
 *.wav
 *.m4a
+debug.sh
 outputs/
 debug_test.py

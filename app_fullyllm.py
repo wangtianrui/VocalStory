@@ -8,6 +8,8 @@ import utils.preset_infos as preset_infos
 from datetime import datetime
 import re
 import random
+import torchaudio
+import torch
 
 css = """
 .step-heading {font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem}
@@ -19,7 +21,9 @@ BOOK_TEMP_PATH = f"./outputs/{formatted_time}/"
 CHARACTER_JSON_PATH = f"./outputs/{formatted_time}/extracted_characters.json"
 SCRIPT_JSON_PATH = f"./outputs/{formatted_time}/script.json"
 LLM_HISTORY_JSON_PATH = f"./outputs/{formatted_time}/llm_history.json"
-os.makedirs(BOOK_TEMP_PATH)
+WAV_SAVE_HOME = f"./outputs/{formatted_time}/wavs/"
+os.makedirs(BOOK_TEMP_PATH, exist_ok=True)
+os.makedirs(WAV_SAVE_HOME, exist_ok=True)
 
 ################内容提取##################
 
@@ -224,14 +228,55 @@ def save_script_json(script_output_text, history):
         return f"❌ JSON format error in script: {e}"
 
 #################TTS#################
-# def tts():
-#     with open(SCRIPT_JSON_PATH, "r") as rf:
-#         script_json = json.load(rf)
-#     with open(CHARACTER_JSON_PATH, "r") as rf:
-#         character_json = json.load(rf)
+def generation():
+    with open(SCRIPT_JSON_PATH, "r") as rf:
+        script_json = json.load(rf)
+    with open(CHARACTER_JSON_PATH, "r") as rf:
+        character_json = json.load(rf)
     
-#     for item
+    for i, item in enumerate(script_json):
+        save_name = os.path.join(WAV_SAVE_HOME, f"{i}.wav")
+        if os.path.exists(save_name):
+            continue
+        payload = {
+            "text": [tmp["line"] for tmp in item["lines"]],
+            # "emotion": [emo_dict[tmp["emotion"]] for tmp in item["lines"]],
+            "emotion": [tmp["emotion"] for tmp in item["lines"]],
+            "duration": [float(tmp["duration"]) for tmp in item["lines"]],
+            "languages": ["zh" for tmp in item["lines"]],
+            "global_emotion": item["global_emotion"],
+            "speaker": character_json[item["speaker"]]["speaker_id"],
+            "ssim_threshold": 0.5,
+            "esim_threshold": 0.5,
+            "wer_threshold": 0.05,
+        }
+        if item["speaker"] == "Narrator":
+            response = requests.post("http://127.0.0.1:8103/tts_narration", json=payload, proxies={"http": None, "https": None})
+        else:
+            response = requests.post("http://127.0.0.1:8101/tts_genshin", json=payload, proxies={"http": None, "https": None})
+        result = json.loads(response.text)
+        torchaudio.save(save_name, torch.tensor(result["speech"]).unsqueeze(0), result["sample_rate"])
 
+    # ✅ 拼接所有 wav 并保存为 all.wav
+    combined_audio = []
+
+    for i in range(len(script_json)):
+        wav_path = os.path.join(WAV_SAVE_HOME, f"{i}.wav")
+        if os.path.exists(wav_path):
+            waveform, sr = torchaudio.load(wav_path)
+            combined_audio.append(waveform)
+            combined_audio.append(torch.zeros(1, int(sr*0.5)))
+
+    # 拼接所有段落
+    if combined_audio:
+        final_audio = torch.cat(combined_audio, dim=1)  # 在时间维度拼接
+        final_save_path = os.path.join(WAV_SAVE_HOME, "all.wav")
+        torchaudio.save(final_save_path, final_audio, sr)
+        print(f"✅ All audio saved to: {final_save_path}")
+    else:
+        final_save_path = None
+        print("❌ No audio segments to merge.")
+    return final_save_path
 ##################################
 with gr.Blocks(css=css, theme=gr.themes.Default()) as gradio_app:
     gr.Markdown("# 📖 Audiobook Creator")
@@ -366,130 +411,23 @@ with gr.Blocks(css=css, theme=gr.themes.Default()) as gradio_app:
     
     with gr.Row():
         with gr.Column(scale=1):  # 左侧展示区
-            gr.Markdown('<div class="step-heading">🎨 Step 4: Script Extraction and Refining</div>')
-    #         with gr.Accordion("Editing Tips", open=True):
-    #             gr.Markdown("""
-    #             * Remove unwanted sections: Table of Contents, About the Author, Acknowledgements
-    #             * Fix formatting issues or OCR errors
-    #             * Check for chapter breaks and paragraph formatting
-    #             """)
-            
-    #         text_output = gr.Textbox(
-    #             label="Edit Book Content", 
-    #             placeholder="Extracted text will appear here for editing",
-    #             interactive=True, 
-    #             lines=15
-    #         )
-            
-    #         save_btn = gr.Button("Save Edited Text", variant="primary")
+            gr.Markdown('<div class="step-heading">🎨 Step 4: AudioBook Generation</div>')
+            # 生成按钮
+            generate_button = gr.Button("生成")
 
-    # with gr.Row():
-    #     with gr.Column():
-    #         gr.Markdown('<div class="step-heading">🧩 Step 3: Character Identification (Optional)</div>')
-            
-    #         identify_btn = gr.Button("Identify Characters", variant="primary")
-            
-    #         with gr.Accordion("Why Identify Characters?", open=True):
-    #             gr.Markdown("""
-    #             * Improves multi-voice narration by assigning different voices to characters
-    #             * Creates more engaging audiobooks with distinct character voices
-    #             * Skip this step if you prefer single-voice narration
-    #             """)
-                
-    #         character_output = gr.Textbox(
-    #             label="Character Identification Progress", 
-    #             placeholder="Character identification progress will be shown here",
-    #             interactive=False,
-    #             lines=3
-    #         )
+            # 播放器，初始为空
+            audio_player = gr.Audio(label="生成的语音", type="filepath")
 
-    # with gr.Row():
-    #     with gr.Column():
-    #         gr.Markdown('<div class="step-heading">🎧 Step 4: Generate Audiobook</div>')
-            
-    #         with gr.Row():
-    #             voice_type = gr.Radio(
-    #                 ["Single Voice", "Multi-Voice"], 
-    #                 label="Narration Type",
-    #                 value="Single Voice",
-    #                 info="Multi-Voice requires character identification"
-    #             )
-
-    #             narrator_gender = gr.Radio(
-    #                 ["male", "female"], 
-    #                 label="Choose whether you want the book to be read in a male or female voice",
-    #                 value="female"
-    #             )
-                
-    #             output_format = gr.Dropdown(
-    #                 ["M4B (Chapters & Cover)", "AAC", "M4A", "MP3", "WAV", "OPUS", "FLAC", "PCM"], 
-    #                 label="Output Format",
-    #                 value="M4B (Chapters & Cover)",
-    #                 info="M4B supports chapters and cover art"
-    #             )
-            
-    #         generate_btn = gr.Button("Generate Audiobook", variant="primary")
-            
-    #         audio_output = gr.Textbox(
-    #             label="Generation Progress", 
-    #             placeholder="Generation progress will be shown here",
-    #             interactive=False,
-    #             lines=3
-    #         )
-            
-    #         # Add a new File component for downloading the audiobook
-    #         with gr.Group(visible=False) as download_box:
-    #             gr.Markdown("### 📥 Download Your Audiobook")
-    #             audiobook_file = gr.File(
-    #                 label="Download Generated Audiobook",
-    #                 interactive=False,
-    #                 type="filepath"
-    #             )
-    
-    # Connections with proper handling of Gradio notifications
-    # validate_btn.click(
-    #     validate_book_upload, 
-    #     inputs=[book_input, book_title], 
-    #     outputs=[]
-    # )
-    
-    # convert_btn.click(
-    #     text_extraction_wrapper, 
-    #     inputs=[book_input, text_decoding_option, book_title], 
-    #     outputs=[text_output],
-    #     queue=True
-    # )
-    
-    # save_btn.click(
-    #     save_book_wrapper, 
-    #     inputs=[text_output, book_title], 
-    #     outputs=[],
-    #     queue=True
-    # )
-    
-    # identify_btn.click(
-    #     identify_characters_wrapper, 
-    #     inputs=[book_title], 
-    #     outputs=[character_output],
-    #     queue=True
-    # )
-    
-    # # Update the generate_audiobook_wrapper to output both progress text and file path
-    # generate_btn.click(
-    #     generate_audiobook_wrapper, 
-    #     inputs=[voice_type, narrator_gender, output_format, book_input, book_title], 
-    #     outputs=[audio_output, audiobook_file],
-    #     queue=True
-    # ).then(
-    #     # Make the download box visible after generation completes successfully
-    #     lambda x: gr.update(visible=True) if x is not None else gr.update(visible=False),
-    #     inputs=[audiobook_file],
-    #     outputs=[download_box]
-    # )
+            # 绑定按钮点击事件
+            generate_button.click(
+                fn=generation,          # 调用的函数
+                inputs=[],              # 无输入
+                outputs=[audio_player]  # 输出给播放器
+            )
     
 app = FastAPI()
 app = gr.mount_gradio_app(app, gradio_app, path="/")  # Mount Gradio at root
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    uvicorn.run(app, host="0.0.0.0", port=7861)

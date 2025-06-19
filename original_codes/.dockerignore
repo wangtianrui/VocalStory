@@ -1,9 +1,0 @@
-__pycache__/
-books/
-generated_audiobooks/
-audio_samples/
-temp_audio/
-todo.md
-.venv/
-model_cache/
-.DS_Store

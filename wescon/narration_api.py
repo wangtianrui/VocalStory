@@ -46,7 +46,6 @@ import librosa as lib
 import requests
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModel
 
 def clean_last_char(s):
     if not s:
@@ -301,18 +300,18 @@ class Wescon1st(BaseFairseqModel):
         self.llm_decoder = nn.Linear(self.cfg.llm_output_size, self.cfg.speech_token_size + 3)
         
         self.text_num = 151665
-        aligner_config = deepcopy(self.llm.model.preset_config)
-        aligner_config._name_or_path = ""
-        aligner_config.num_hidden_layers = cfg.aligner_layer
-        self.aligner = Qwen2NAREncoder(
-            aligner_config,
-        )
-        self.aligner_decoder = Predictor(
-            self.cfg.llm_output_size, 
-            self.cfg.aligner_convdim,
-            self.cfg.aligner_convker,
-            self.text_num
-        )
+        # aligner_config = deepcopy(self.llm.model.preset_config)
+        # aligner_config._name_or_path = ""
+        # aligner_config.num_hidden_layers = cfg.aligner_layer
+        # self.aligner = Qwen2NAREncoder(
+        #     aligner_config,
+        # )
+        # self.aligner_decoder = Predictor(
+        #     self.cfg.llm_output_size, 
+        #     self.cfg.aligner_convdim,
+        #     self.cfg.aligner_convker,
+        #     self.text_num
+        # )
         self.speech_embedding = torch.nn.Embedding(self.cfg.speech_token_size + 3, self.cfg.llm_input_size)
         self.hift = None
         self.flow = None
@@ -415,9 +414,10 @@ class Wescon1st(BaseFairseqModel):
                                                     a_h_n_sa_su_text_lens=a_h_n_sa_su_text_lens,
                                                     a_h_n_sa_su_st_lens=a_h_n_sa_su_st_lens,
                                                     text_control=text_control)
-            y_preds.append(y_pred)
+            # y_preds.append(y_pred)
             logp = self.llm_decoder(y_pred[:, -1]).log_softmax(dim=-1)
             top_ids = self.sampling_ids(logp.squeeze(dim=0), out_tokens, sampling, ignore_eos=True if i < min_len else False).item()
+            # print(f"max_len:{max_len}, y_pred:{top_ids}")
             if top_ids == self.speech_token_size:
                 break
             if top_ids > self.speech_token_size:
@@ -426,43 +426,8 @@ class Wescon1st(BaseFairseqModel):
             # yield top_ids
             out_tokens.append(top_ids)
             lm_input = self.speech_embedding.weight[top_ids].reshape(1, 1, -1)
-        # end = time.perf_counter()
-        # print(f"infer内部循环耗时: {end - start:.6f} 秒")
-        # start = time.perf_counter()
-        # if not last_item:
-        lm_output = torch.cat(y_preds, dim=1)[:, -len(y_preds):]
-        T = lm_output.size(1)
-        masks = make_encoder_attention_mask(torch.LongTensor([T]), T).to(device)
-        # print(lm_output.size(), masks.size())
-        align_output = self.aligner(
-            inputs_embeds=lm_output,
-            attention_mask=masks,
-            output_hidden_states=False,
-            return_dict=True,
-        )
-        align_pred = align_output.last_hidden_state
-        tp_logits, bd_logits = self.aligner_decoder(align_pred)
-        tp_tokens = argmax_with_block_penalty(
-            tp_logits, self.silence_token, repeat_threshold=10, penalty_scale=0.2
-        )
-        out_tokens = torch.LongTensor(out_tokens)
-        if lang == "zh":
-            max_sil = 10
-            type_num = 2
-            max_len = 20
-        elif lang == "en":
-            max_sil = 10
-            type_num = 2
-            max_len = 20
-        last_text, start_idx, end_idx = extract_with_targetset_limit(tp_tokens[0].cpu(), max_sil=max_sil, type_num=type_num, max_len=max_len)
-        if start_idx is not None:
-            last_st = out_tokens[start_idx:end_idx]
-        else:
-            last_st = None
-        choosed = check_target_ratio(tp_tokens.flatten(), end_idx, [self.silence_token, self.next_token])
-        if choosed is None:
-            out_tokens = None
-        return out_tokens[:end_idx], last_text, last_st, choosed
+            
+        return out_tokens
     
     def init_infer_modules(self, 
                         device,
@@ -610,9 +575,7 @@ class Wescon1st(BaseFairseqModel):
                         last_item=False,
                         lang="",
                         **kwargs):
-        if prompt_sp != 1.0:
-            llm_prompt_speech_token = resample_by_stride(llm_prompt_speech_token[0], prompt_sp).unsqueeze(0)
-        this_tts_speech_token, last_text, last_st, tp_tokens = self.inference(text=text.to(self.device),
+        this_tts_speech_token = self.inference(text=text.to(self.device),
                         text_len=torch.tensor([text.shape[1]], dtype=torch.int32).to(self.device),
                         prompt_text=prompt_text.to(self.device),
                         prompt_text_len=torch.tensor([prompt_text.shape[1]], dtype=torch.int32).to(self.device),
@@ -621,7 +584,7 @@ class Wescon1st(BaseFairseqModel):
                         embedding=llm_embedding.to(self.device),
                         last_item=last_item,
                         lang=lang)
-        return this_tts_speech_token, last_text, last_st, tp_tokens
+        return torch.tensor(this_tts_speech_token).to(torch.long)
     
 def resample_by_stride(tensor, scale):
     length = len(tensor)
@@ -740,16 +703,11 @@ def load_pretrained_tp_models(model, pretrained_checkpoint):
     model.load_state_dict(model_state)
     return model
 
-def map_speed(mark, real_min, real_mean, real_max):
-    """
-    将标记的速度区间 [0.5, 2.0] 映射到真实速度区间 [real_min, real_max]，1 对应 real_mean
-    """
-    mark = max(min(mark, 2.0), 0.5)
-    if mark <= 1:
-        real_speed = real_min + (mark - 0.5) / (1 - 0.5) * (real_mean - real_min)
-    else:
-        real_speed = real_mean + (mark - 1) / (2 - 1) * (real_max - real_mean)
-    return real_speed   
+########################################################################################
+def load_spk_info(model, prompt_speech):
+    global_prompt_wav = load_wav(prompt_speech, target_sr=16000)
+    global_prompt = model.frontend.speaker_infos(global_prompt_wav, model.sample_rate)
+    return global_prompt, global_prompt_wav
 
 def rms_normalize(waveform: torch.Tensor, target_rms: float = 0.05) -> torch.Tensor:
     """
@@ -764,19 +722,7 @@ def rms_normalize(waveform: torch.Tensor, target_rms: float = 0.05) -> torch.Ten
     gain = target_rms / rms
     return torch.clamp(waveform * gain, -1.0, 1.0).unsqueeze(0)
 
-########################################################################################
-def load_spk_info(model, item):
-    global_prompt_wav = load_wav(item["filepath"], target_sr=16000)
-    global_prompt = model.frontend.speaker_infos(global_prompt_wav, model.sample_rate)
-    return global_prompt, global_prompt_wav
-
 app = FastAPI()
-
-def speed2region(sp):
-    clamped_target = max(0.5, min(2.0, sp))
-    target_bucket = int((clamped_target - 0.5) / ((2.0 - 0.5) / 3))
-    target_bucket_idx = min(target_bucket, 2) - 1
-    return - target_bucket_idx # 需要倒一下
 
 class ArrayInput(BaseModel):
     text: list  
@@ -789,243 +735,67 @@ class ArrayInput(BaseModel):
     esim_threshold: float
     languages: list
 
-@app.post("/tts")
-def emotional_tts_esd(data: ArrayInput):
-    global_emotion = data.global_emotion
-    speaker = data.speaker
-    generated_speech_tokens = []
-    generated_emo_speech = []
-
-    global_prompt_candidates = []
-    for key in prompt_json[global_emotion][speaker].keys():
-        global_prompt_candidates += prompt_json[global_emotion][speaker][key]
-    global_prompt = random.choices(list(global_prompt_candidates), k=1)[0]
-    global_prompt, global_prompt_wav = load_spk_info(model, global_prompt)
-
-    for idx, (text, emotion, duration, lang) in enumerate(zip(
-        data.text, data.emotion, data.duration, data.languages
-    )):
-        if lang == "zh":
-            tgt_phone_len = len(text)
-        else:
-            tgt_phone_len = len(g2p_model(text))
-        cur_st_phone = duration * 25 / tgt_phone_len
-        print(cur_st_phone)
-
-        last_item = (idx == len(data.text) - 1)
-        duration_keys = list(prompt_json[emotion][speaker].keys())
-        key_floats = [float(k) for k in duration_keys]
-        closest_key = min(key_floats, key=lambda x: abs(x - cur_st_phone))
-        # 取出对应内容
-        prompt_candidates = prompt_json[emotion][speaker][str(closest_key)]
-        
-        generated_ok = False
-        regenerate_time = 10
-        last_text, last_st = None, None
-        all_eval_results = []
-        while not generated_ok and regenerate_time > 0:
-            try:
-                prompt_emo = random.choices(list(prompt_candidates), k=1)[0]
-                prompt_emo_signal = lib.load(prompt_emo["filepath"], sr=16000)[0]
-                temp_line_speech_token = []
-                for text_item in model.frontend.text_normalize(text, split=True):
-                    if not last_item:
-                        text_item = clean_last_char(text_item)
-                    model_input = {
-                        "text": model.frontend._extract_text_token(text_item)[0],
-                        "prompt_text": torch.LongTensor([
-                            list(map(int, prompt_emo["text_token"].split(" ")))
-                        ]),
-                        "llm_prompt_speech_token": torch.LongTensor([
-                            list(map(int, prompt_emo["speech_token"].split(" ")))
-                        ]),
-                    }
-                    if last_st is not None:
-                        model_input["llm_prompt_speech_token"] = torch.cat(
-                            [model_input["llm_prompt_speech_token"], last_st.unsqueeze(0)], dim=1
-                        )
-                        model_input["prompt_text"] = torch.cat(
-                            [model_input["prompt_text"], last_text.unsqueeze(0)], dim=1
-                        )
-                        
-                    for key in model_input.keys():
-                        try:
-                            model_input[key] = model_input[key].to(device)
-                            print(key, model_input[key].size())
-                        except:
-                            pass
-                    print(text_item)
-                    # if sp_scaler == -1:
-                    #     sp_scaler = min(1.75, max(cur_st_phone / prompt_emo["st/phone"], 0.75))
-                    sp_scaler = 1.0
-                    speech_token, _, last_st, tp_tokens = model.inference_st(**model_input, prompt_sp=sp_scaler, last_item=last_item, lang=lang)
-                    last_text = model_input["text"][:, -1].cpu()
-                    temp_line_speech_token.append(speech_token)
-                temp_line_speech_token = torch.cat(temp_line_speech_token, dim=0)
-                temp_emo_prompt_spk_info, temp_emo_prompt_wav = load_spk_info(model, prompt_emo)
-                speech = model.generate_speech(temp_line_speech_token, **temp_emo_prompt_spk_info)
-            except Exception as e:
-                traceback.print_exc()
-                print("retry")
-                continue
-            eval_info = {
-                "gen_array": [speech.flatten().numpy().tolist()],
-                "emotion_ref": [prompt_emo_signal.tolist()],
-                "tgt_text": [text],
-                "speaker_ref": global_prompt_wav.flatten().numpy().tolist(),
-                "languages": [lang]
-            }
-            response = requests.post("http://127.0.0.1:8100/predict", json=eval_info, proxies={"http": None, "https": None})
-            print("Raw Text:", response.text) 
-            eval_result = json.loads(response.text)
-            all_eval_results.append({
-                "speech_token": temp_line_speech_token,
-                "wer": np.mean(eval_result["wers"]),
-                "s_sim": np.mean(eval_result["s_sims"]),
-                "e_sim": np.mean(eval_result["e_sims"]),
-                "emo_speech": speech.flatten().numpy()
-            })
-            if np.mean(eval_result["wers"]) > data.wer_threshold:
-                regenerate_time -= 1
-                continue
-            if np.mean(eval_result["s_sims"]) < data.ssim_threshold:
-                regenerate_time -= 1
-                continue
-            if np.mean(eval_result["e_sims"]) < data.esim_threshold:
-                regenerate_time -= 1
-                continue
-            generated_speech_tokens.append(temp_line_speech_token)
-            generated_ok = True
-            generated_emo_speech.append(all_eval_results[-1]["emo_speech"])
-
-        if regenerate_time <= 0 and not generated_ok:
-            # 多指标排序：WER最小，s_sim最大，e_sim最大
-            all_eval_results.sort(key=lambda x: (x["wer"], -x["s_sim"], -x["e_sim"]))
-            best = all_eval_results[0]
-            generated_speech_tokens.append(best["speech_token"])
-            generated_ok = True
-            generated_emo_speech.append(best["emo_speech"])
-
-    temp_line_speech_token = torch.cat(generated_speech_tokens, dim=0)
-    speech = model.generate_speech(temp_line_speech_token, **global_prompt)
-    speech = rms_normalize(speech)
-    return {"speech": speech.flatten().numpy().tolist(), "sample_rate": model.sample_rate, "generated_emo_speech": np.concatenate(generated_emo_speech).tolist()}
-
 ##########################################################
 
-def zh_sentence_bert(sentence, sentence_model):
-    emb = sentence_model.encode([sentence])[0].flatten()
-    return np.expand_dims(emb, axis=0)
+device = torch.device("cuda:0")
+g2p_model = G2p()
+config = Wescon1stConfig()
+model = Wescon1st(config)
+ckpt = r"model_cache/narrations/man1/checkpoint_last.pt"
+model = load_pretrained_tp_models(model, ckpt).to(device)
+model.init_infer_modules(device)
+prompt_speech = r"model_cache/narrations/man1/1064_part.wav"
+# prompt_trans = r"晚上做噩梦怎么办呢？算了我还是别见了。老头呢很懊恼，退朝之后把这件事儿跟马骥就说了。马骥说，没关系没关系，我在您这儿呆的也挺开心的。马骥呢在老头这儿就又住了几天。"
+prompt_trans = r"晚上做噩梦怎么办呢，算了我还是别见了，老头呢很懊恼。"
 
-def en_sentence_bert(sentence, sentence_model, tokenizer):
-    inputs = tokenizer(sentence, return_tensors="pt", truncation=True, padding=True)
-    with torch.no_grad():
-        outputs = sentence_model(**inputs)
-        sentence_embedding = outputs.pooler_output[0].flatten()
-    return np.expand_dims(sentence_embedding, axis=0)
-
-@app.post("/tts_genshin")
+@app.post("/tts_narration")
 def emotional_tts_genshin(data: ArrayInput):
     global_emotion = data.global_emotion
     speaker = data.speaker
     generated_speech_tokens = []
     generated_emo_speech = []
 
-    # get all emo desc embs of target speaker
-    all_embs = []
-    for item in prompt_json[speaker]:
-        emo_emb = np.load(os.path.join(emo_desc_emb_home, item["emo_emb"]))
-        all_embs.append(emo_emb)
-    all_embs = np.stack(all_embs, axis=0) # utt_num, emb_dim
-
-    if flag == "zh":
-        # 1, emb_dim
-        global_emotion_emb = sentence_func(global_emotion, sentence_model) 
-    elif flag == "en":
-        # 1, emb_dim
-        global_emotion_emb = sentence_func(global_emotion, sentence_model, sentence_tokenizer)
+    global prompt_trans
+    prompt_trans_normed = model.frontend.text_normalize(prompt_trans, split=False, text_frontend=True)
+    prompt_text_token, prompt_text_token_len = model.frontend._extract_text_token(prompt_trans_normed)
+    global_prompt, global_prompt_wav = load_spk_info(model, prompt_speech)
+    prompt_speech_token, prompt_speech_token_len = model.frontend._extract_speech_token(global_prompt_wav)
     
-    # choose global prompt
-    cos_sim = cosine_similarity(global_emotion_emb, all_embs)  
-    # 找到最大相似度的索引
-    max_sim_index = np.argmax(cos_sim)
-    # 获取最大相似度的值
-    global_prompt = prompt_json[speaker][max_sim_index]
-    global_prompt, global_prompt_wav = load_spk_info(model, global_prompt)
-
     for idx, (text, emotion, duration, lang) in enumerate(zip(
         data.text, data.emotion, data.duration, data.languages
     )):
-        if lang == "zh":
-            tgt_phone_len = len(text)
-        else:
-            tgt_phone_len = len(g2p_model(text))
-        cur_st_phone = duration * 25 / tgt_phone_len
-        print(cur_st_phone)
-
-        last_item = (idx == len(data.text) - 1)
-        # 根据情感相似度选择当前的prompt
-        if flag == "zh":
-            # 1, emb_dim
-            cur_emo_emb = sentence_func(emotion, sentence_model) 
-        elif flag == "en":
-            # 1, emb_dim
-            cur_emo_emb = sentence_func(emotion, sentence_model, sentence_tokenizer)
-        cos_sim = cosine_similarity(cur_emo_emb, all_embs)  
-        top_10_sim_indices = np.argsort(cos_sim[0])[-10:][::-1]
-        prompt_candidates = [prompt_json[speaker][i] for i in top_10_sim_indices]
-        
         generated_ok = False
         regenerate_time = 10
-        last_text, last_st = None, None
         all_eval_results = []
         while not generated_ok and regenerate_time > 0:
             try:
-                prompt_emo = random.choices(list(prompt_candidates), k=1)[0]
-                prompt_emo_signal = lib.load(prompt_emo["filepath"], sr=16000)[0]
                 temp_line_speech_token = []
                 for text_item in model.frontend.text_normalize(text, split=True):
-                    if not last_item:
-                        text_item = clean_last_char(text_item)
                     model_input = {
                         "text": model.frontend._extract_text_token(text_item)[0],
-                        "prompt_text": torch.LongTensor([
-                            list(map(int, prompt_emo["text_token"].split(" ")))
-                        ]),
-                        "llm_prompt_speech_token": torch.LongTensor([
-                            list(map(int, prompt_emo["speech_token"].split(" ")))
-                        ]),
+                        "prompt_text": prompt_text_token,
+                        "llm_prompt_speech_token": prompt_speech_token,
                     }
-                    if last_st is not None:
-                        model_input["llm_prompt_speech_token"] = torch.cat(
-                            [model_input["llm_prompt_speech_token"], last_st.unsqueeze(0)], dim=1
-                        )
-                        model_input["prompt_text"] = torch.cat(
-                            [model_input["prompt_text"], last_text.unsqueeze(0)], dim=1
-                        )
                         
                     for key in model_input.keys():
                         try:
                             model_input[key] = model_input[key].to(device)
+                            # print(f"key:{key};size:{str(model_input[key].size())}")
                         except:
                             pass
                     print(text_item)
-                    # if sp_scaler == -1:
-                    #     sp_scaler = min(1.75, max(cur_st_phone / prompt_emo["st/phone"], 0.75))
-                    sp_scaler = 1.0
-                    speech_token, _, last_st, tp_tokens = model.inference_st(**model_input, prompt_sp=sp_scaler, last_item=last_item, lang=lang)
-                    last_text = model_input["text"][:, -1].cpu()
+                    speech_token = model.inference_st(**model_input)
                     temp_line_speech_token.append(speech_token)
                 temp_line_speech_token = torch.cat(temp_line_speech_token, dim=0)
-                temp_emo_prompt_spk_info, temp_emo_prompt_wav = load_spk_info(model, prompt_emo)
-                speech = model.generate_speech(temp_line_speech_token, **temp_emo_prompt_spk_info)
+                print(temp_line_speech_token.size())
+                speech = model.generate_speech(temp_line_speech_token, **global_prompt)
             except Exception as e:
                 traceback.print_exc()
                 print("retry")
                 continue
             eval_info = {
                 "gen_array": [speech.flatten().numpy().tolist()],
-                "emotion_ref": [prompt_emo_signal.tolist()],
+                "emotion_ref": [global_prompt_wav.flatten().numpy().tolist()],
                 "tgt_text": [text],
                 "speaker_ref": global_prompt_wav.flatten().numpy().tolist(),
                 "languages": [lang]
@@ -1066,49 +836,9 @@ def emotional_tts_genshin(data: ArrayInput):
     speech = rms_normalize(speech)
     return {"speech": speech.flatten().numpy().tolist(), "sample_rate": model.sample_rate, "generated_emo_speech": np.concatenate(generated_emo_speech).tolist()}
 
-##########################################################
-
-@app.post("/speaker_list")
-def emotional_tts():
-    spk_list = prompt_json["spk_list"]
-
-    keys_to_delete = []
-    for spk_name in spk_list.keys():
-        if spk_list[spk_name].get("utt_num", float(0)) < 20:
-            keys_to_delete.append(spk_name)
-        if spk_list[spk_name].get("lang", "none") == "none":
-            spk_list[spk_name]["lang"] = flag
-
-    for spk_name in keys_to_delete:
-        spk_list.pop(spk_name)
-
-    return spk_list
-
 ########################################################################################
-device = torch.device("cuda:0")
-g2p_model = G2p()
-config = Wescon1stConfig()
-model = Wescon1st(config)
-ckpt = r"model_cache/checkpoint_zhen.pt"
-model = load_pretrained_tp_models(model, ckpt).to(device)
-model.init_infer_modules(device)
-with open(r"model_cache/speechdatas/genshin/genshin_data_zh.json", "r", encoding="utf-8") as rf:
-    prompt_json = json.load(rf)
-with open(r"model_cache/speechdatas/genshin/spk_info.json", "r", encoding="utf-8") as rf:
-    prompt_json["spk_list"] = json.load(rf)
-emo_desc_emb_home = r"/CDShare2/2023/wangtianrui/dataset/SpecialRoles/Genshin5.4/infos/Chinese/npys"
 
-if "Chinese" in emo_desc_emb_home:
-    sentence_model = SentenceTransformer('uer/sbert-base-chinese-nli')
-    sentence_func = zh_sentence_bert
-    flag = "zh"
-elif "English" in emo_desc_emb_home:
-    model_name = 'jitesh/emotion-english'  # 支持情感分析的英文模型
-    sentence_tokenizer = AutoTokenizer.from_pretrained(model_name)
-    sentence_model = AutoModel.from_pretrained(model_name)
-    sentence_func = en_sentence_bert
-    flag = "en"
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("wescon.wescon_api:app", host="0.0.0.0", port=8101, reload=False)
+    uvicorn.run("wescon.narration_api:app", host="0.0.0.0", port=8103, reload=False)
