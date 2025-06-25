@@ -54,7 +54,7 @@ This project is licensed under the GNU General Public License v3.0 (GPL-3.0). Se
 ## Credits 
 
 * Main Contributors
-    <p align="center"> <img src="./pics/tju.png" alt="Contributor 1" width="120" /> &nbsp;&nbsp;&nbsp;&nbsp; <img src="./pics/NTU.png" alt="Contributor 2" width="120" /> &nbsp;&nbsp;&nbsp;&nbsp; <img src="./pics/sjtu.png" alt="Contributor 3" width="120" /> </p>
+    <p align="center"> <img src="./pics/tju.png" alt="Contributor 1" width="120" /> &nbsp;&nbsp;&nbsp;&nbsp; <img src="./pics/NTU.png" alt="Contributor 2" width="120" /> &nbsp;&nbsp;&nbsp;&nbsp; <img src="./pics/sjtu.png" alt="Contributor 3" width="120" /> &nbsp;&nbsp;&nbsp;&nbsp; <img src="./pics/TeleAI_Logo.png" alt="Contributor 4" width="120" /> </p>
 
 * Special thanks to the following projects
 
